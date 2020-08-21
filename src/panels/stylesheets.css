@@ -1,0 +1,35 @@
+body {
+  --mapHeight: 82.5vh;
+}
+.panel {
+  padding: 0px;
+  margin: 0px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border: 1 px solid black;
+}
+#map {
+  margin: 0px;
+  padding: 0px;
+  width: 100vw;
+  height: var(--mapHeight);
+  position: fixed;
+  overflow: hidden;
+}
+#modalDiv {
+  margin-top: 0px;
+  padding: 0px;
+}
+#description {
+  margin: 0px;
+  padding: 0px;
+  display: flex;
+  justify-content: center;
+}
+#rowTabs {
+  padding: 0px;
+  margin: 0px;
+  display: flex;
+  flex-direction: row;
+}
