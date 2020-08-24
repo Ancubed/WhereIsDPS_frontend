@@ -124,7 +124,7 @@ const App = () => {
 		}
 		let response = false;
 		try {
-			response = await fetch("http://127.0.0.1:3000/addmarker", {
+			response = await fetch("http://localhost:3000/addmarker", {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
@@ -137,13 +137,22 @@ const App = () => {
 		if (!response) {
 			alert('Что-то пошло не так... \nВозможно, сервер недоступен.');
 		}
+		// updateMarkersOnMap().then((markers) => {
+		// 	console.log(markers);
+		// })
+		
+		//место для ререндера карты после нового добавления маркера на карту
+	}
+
+	async function updateMarkersOnMap() {
 		try {
-			let response = await fetch('http://127.0.0.1:3000/getmarkers');
+			let response = await fetch('http://localhost:3000/getmarkers');
 			let json = await response.json();
-			let lessons = await json;
-			console.log(lessons);
+			let markers = await json;
+			return markers;
 		} catch(e) {
 			console.log('Сервер недоступен.');
+			return [];
 		}
 	}
 
@@ -258,7 +267,7 @@ const App = () => {
 					mode: 'primary',
 					action: () => {
 						sendMarkerInfo();
-						onRemoveMarker();
+						//onRemoveMarker();
 						setModal(null);
 						setComment('');
 					}},
@@ -290,7 +299,7 @@ const App = () => {
 					mode: 'primary',
 					action: () => {
 						sendMarkerInfo();
-						onRemoveMarker();
+						//onRemoveMarker();
 						setModal(null);
 						setComment('');
 						setActiveRows('');
@@ -359,7 +368,7 @@ const App = () => {
 					mode: 'primary',
 					action: () => {
 						sendMarkerInfo();
-						onRemoveMarker();
+						//onRemoveMarker();
 						setModal(null);
 						setComment('');
 					}},
@@ -405,7 +414,7 @@ const App = () => {
 				<Chat id="chatPanel"/>
 			</View>
 			<View id="mapPanel" activePanel="mapPanel" modal = {modalRoot}>
-			 	<Map id="mapPanel" onSetMarker={onSetMarker}/>
+			 	<Map id="mapPanel" onSetMarker={onSetMarker} updateMarkersOnMap={updateMarkersOnMap}/>
 			</View>
 			<View id="configPanel" activePanel="configPanel">
 				<Config id="configPanel"/>

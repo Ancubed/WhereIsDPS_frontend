@@ -33,3 +33,9 @@ body {
   display: flex;
   flex-direction: row;
 }
+.popupHeader {
+  margin: 0px;
+  padding: 0px;
+  display: flex;
+  justify-content: center;
+}
