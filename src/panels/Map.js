@@ -20,7 +20,7 @@ class Map extends React.Component {
 	popupOpenHandler(markerData) {
 		console.log(markerData);
 	}
-
+	
 	updateMarkers() {
 		this.props.updateMarkersOnMap().then((markers) => {
 			markersArr = markers;
