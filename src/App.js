@@ -24,12 +24,18 @@ import Title from '@vkontakte/vkui/dist/components/Typography/Title/Title';
 import Icon24Cancel from '@vkontakte/icons/dist/24/cancel';
 import Icon24User from '@vkontakte/icons/dist/24/user';
 import Text from '@vkontakte/vkui/dist/components/Typography/Text/Text';
+import Subhead from '@vkontakte/vkui/dist/components/Typography/Subhead/Subhead';
 import Textarea from '@vkontakte/vkui/dist/components/Textarea/Textarea';
 import Tabs from '@vkontakte/vkui/dist/components/Tabs/Tabs';
+import Link from '@vkontakte/vkui/dist/components/Link/Link';
 import TabsItem from '@vkontakte/vkui/dist/components/TabsItem/TabsItem';
 import Avatar from '@vkontakte/vkui/dist/components/Avatar/Avatar';
 import Separator from '@vkontakte/vkui/dist/components/Separator/Separator';
 import Icon28AddOutline from '@vkontakte/icons/dist/28/add_outline';
+import UsersStack from '@vkontakte/vkui/dist/components/UsersStack/UsersStack';
+import Icon16Done from '@vkontakte/icons/dist/16/done';
+import Icon16Cancel from '@vkontakte/icons/dist/16/cancel';
+import Snackbar from '@vkontakte/vkui/dist/components/Snackbar/Snackbar';
 
 import '@vkontakte/vkui/dist/vkui.css';
 import './panels/stylesheets.css';
@@ -37,6 +43,10 @@ import './panels/stylesheets.css';
 import Map from './panels/Map';
 import Chat from './panels/Chat';
 import Config from './panels/Config';
+
+import dps from './img/dps.svg';
+import dtp from './img/dtp.svg';
+import sos from './img/sos.svg';
 
 String.prototype.replaceAt = function(index, replacement) {
 	return this.substr(0, index) + replacement + this.substr(index + replacement.length);
@@ -57,6 +67,11 @@ const App = () => {
 	const MODAL_CARD_ADD_MARKER_DPS = 'addCardMarkerDps';
 	const MODAL_CARD_ADD_MARKER_DTP = 'addCardMarkerDtp';
 	const MODAL_CARD_ADD_MARKER_SOS = 'addCardMarkerSos';
+	const infoCards = {
+		'dps': 'infoCardMarkerDps',
+		'dtp': 'infoCardMarkerDtp',
+		'sos': 'infoCardMarkerSos'
+	}
 	const MODAL_PAGE_MARKER_SELECT = 'selectMarkerType';
 	const [fetchedUser, setUser] = useState(null);
 	const [comment, setComment] = useState('');
@@ -65,7 +80,9 @@ const App = () => {
 	const [modal, setModal] = useState(null);
 	const [activeType, setActiveType] = useState('dps');
 	const [activeRows, setActiveRows] = useState('');
+	const [clickedMarker, setClickedMarker] = useState(null);
 	const [activeDescription, setActiveDescription] = useState(descriptions[activeType]);
+	const [snackbar, setSnackbar] = useState(null);
 	
 
 	useEffect(() => {
@@ -79,6 +96,7 @@ const App = () => {
 		});
 		async function fetchData() {
 			const user = await bridge.send('VKWebAppGetUserInfo');
+			console.log(user);
 			setUser(user);
 			setPopout(null);
 		}
@@ -108,7 +126,20 @@ const App = () => {
 		else setActiveRows(activeRows + letter);
 	}
 
-	async function sendMarkerInfo() {
+	function onClickMarker(markerInfo) {
+		setClickedMarker(markerInfo);
+		setModal(infoCards[markerInfo.type]);
+	}
+
+	function getDiffTime(start) {
+		let end = new Date;
+		let diff = end - start;
+		let hours = Math.floor((diff % 86400000) / 3600000);
+		let minutes = Math.round(((diff % 86400000) % 3600000) / 60000);
+		return hours == 0 ? minutes + 'м. назад' : hours + 'ч. ' + minutes + 'м. назад';
+	}
+
+	async function addMarker() {
 		let markerInfo = {
 			type: activeType,
 			userId: fetchedUser.id,
@@ -120,11 +151,11 @@ const App = () => {
 			comment: comment,
 		}
 		if (activeType === 'dps' || activeType === 'dtp') {
-			markerInfo.isConfirm = false;
+			markerInfo.confirmed = [];
 		}
 		let response = false;
 		try {
-			response = await fetch("http://localhost:3000/addmarker", {
+			response = await fetch("http://localhost:3010/addmarker", {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
@@ -132,10 +163,32 @@ const App = () => {
 				body: JSON.stringify(markerInfo)
 			});
 		} catch(e) {
-			console.log('Сервер недоступен.');
+			setSnackbar(
+				<Snackbar
+				layout="horizontal"
+				duration={2000}
+				onClose={() => {
+						setSnackbar(null);
+				}}
+				before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+				>
+				Сервер недоступен.
+				</Snackbar>
+			);
 		}
 		if (!response) {
-			alert('Что-то пошло не так... \nВозможно, сервер недоступен.');
+			setSnackbar(
+				<Snackbar
+				layout="horizontal"
+				duration={2000}
+				onClose={() => {
+						setSnackbar(null);
+				}}
+				before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+				>
+				Возникла серверная ошибка.
+				</Snackbar>
+			);
 		}
 		// updateMarkersOnMap().then((markers) => {
 		// 	console.log(markers);
@@ -144,15 +197,204 @@ const App = () => {
 		//место для ререндера карты после нового добавления маркера на карту
 	}
 
-	async function updateMarkersOnMap() {
+	async function updateMarkers() {
+		// return [
+		// 	{
+		// 	  _id: '5f4a5174f1b66520e40db74a',
+		// 	  type: 'dtp',
+		// 	  userId: 178441004,
+		// 	  firstName: 'Андрей',
+		// 	  lastName: 'Антонов',
+		// 	  photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
+		// 	  datetime: 1598706036245,
+		// 	  data: { lat: 51.78186043052068, lng: 55.08256519446151 },
+		// 	  comment: 'Средний ряд, правый ряд. ',
+		// 	  confirmed: []
+		// 	},
+		// 	{
+		// 	  _id: '5f4a5183f1b66520e40db74b',
+		// 	  type: 'dps',
+		// 	  userId: 178441004,
+		// 	  firstName: 'Андрей',
+		// 	  lastName: 'Антонов',
+		// 	  photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
+		// 	  datetime: 1598706051086,
+		// 	  data: { lat: 51.775488008119375, lng: 55.17251575598494 },
+		// 	  comment: 'В обе стороны',
+		// 	  confirmed: [{
+		// 		  	userId: 178441004,
+		// 			firstName: 'Андрей',
+		// 			photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
+		// 		},
+		// 		{
+		// 			userId: 178441004,
+		// 		  	firstName: 'Андрей',
+		// 		  	photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
+		// 		},
+		// 		{
+		// 			userId: 178441004,
+		// 			firstName: 'Андрей',
+		// 			photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
+		// 		},
+		// 		{
+		// 			userId: 178441004,
+		// 			firstName: 'Андрей',
+		// 			photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
+		// 		}]
+		// 	},
+		// 	{
+		// 	  _id: '5f4a54e5f1b66520e40db74d',
+		// 	  type: 'sos',
+		// 	  userId: 178441004,
+		// 	  firstName: 'Андрей',
+		// 	  lastName: 'Антонов',
+		// 	  photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
+		// 	  datetime: 1598706917419,
+		// 	  data: { lat: 51.79884913146363, lng: 55.134201049804695 },
+		// 	  comment: 'Hi'
+		// 	}
+		//   ];
 		try {
-			let response = await fetch('http://localhost:3000/getmarkers');
+			let response = await fetch('http://localhost:3010/getmarkers');
 			let json = await response.json();
 			let markers = await json;
 			return markers;
 		} catch(e) {
-			console.log('Сервер недоступен.');
+			setSnackbar(
+				<Snackbar
+				layout="horizontal"
+				duration={5000}
+				onClose={() => {
+						setSnackbar(null);
+				}}
+				before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+				>
+				Сервер недоступен.
+				</Snackbar>
+			);
 			return [];
+		}
+	}
+
+	async function removeMarker() {
+		if (clickedMarker) {
+			let response = false;
+			try {
+				response = await fetch("http://localhost:3010/removemarker", {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						idToConfirm: clickedMarker._id
+					})
+				});
+			} catch(e) {
+				setSnackbar(
+					<Snackbar
+					layout="horizontal"
+					duration={20000}
+					onClose={() => {
+							setSnackbar(null);
+					}}
+					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+					>
+					Сервер недоступен.
+					</Snackbar>
+				);
+			}
+			if (!response) {
+				setSnackbar(
+					<Snackbar
+					layout="horizontal"
+					duration={20000}
+					onClose={() => {
+							setSnackbar(null);
+					}}
+					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+					>
+					Возникла серверная ошибка.
+					</Snackbar>
+				);
+			}
+		}
+	}
+
+	async function confirmMarker() {
+		if (clickedMarker) {
+			if (!includesId()) {
+				let response = false;
+				try {
+					response = await fetch("http://localhost:3010/confirmmarker", {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							idToConfirm: clickedMarker._id,
+							userData: {
+								userId: fetchedUser.id,
+								firstName: fetchedUser.first_name,
+								photo: fetchedUser.photo_100
+							}
+						})
+					});
+				} catch(e) {
+					setSnackbar(
+						<Snackbar
+						layout="horizontal"
+						duration={20000}
+						onClose={() => {
+								setSnackbar(null);
+						}}
+						before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+						>
+						Сервер недоступен.
+						</Snackbar>
+					);
+				}
+				if (!response) {
+					setSnackbar(
+						<Snackbar
+						layout="horizontal"
+						duration={20000}
+						onClose={() => {
+								setSnackbar(null);
+						}}
+						before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+						>
+						Возникла серверная ошибка.
+						</Snackbar>
+					);
+				} else {
+					setSnackbar(
+						<Snackbar
+						layout="horizontal"
+						duration={1000}
+						onClose={() => {
+								setSnackbar(null);
+						}}
+						before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Done fill="#fff" width={14} height={14} /></Avatar>}
+						>
+						Спасибо!
+						</Snackbar>
+					);
+				}
+			}
+			else {
+				setSnackbar(
+					<Snackbar
+					layout="horizontal"
+					duration={2000}
+					onClose={() => {
+							setSnackbar(null);
+					}}
+					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+					>
+					Вы не можете подтвердить этот маркер.
+					</Snackbar>
+				);
+			}
 		}
 	}
 
@@ -176,6 +418,33 @@ const App = () => {
 				setComment(comment.replace('. ', ', ').firstLetterCaps() + row + '. ');
 			}
 		} 
+	}
+
+	function includesId() {
+		if(clickedMarker.userId === fetchedUser.id) {
+			return true;
+		}
+		for(let i = 0; i < clickedMarker.confirmed.length; i++) {
+			if(clickedMarker.confirmed[i].userId === fetchedUser.id) {
+				return true;
+			}	
+			return false;
+		}
+	}
+
+	function divideConfirmed() {
+		if (clickedMarker && clickedMarker.confirmed) {
+			let photoArr = [];
+			let firstNameArr = [];
+			let userIdArr = [];
+			for(let i = 0; i < clickedMarker.confirmed.length; i++) {
+				photoArr.push(clickedMarker.confirmed[i].photo);
+				firstNameArr.push(clickedMarker.confirmed[i].firstName);
+				userIdArr.push(clickedMarker.confirmed[i].userId);
+			}
+			return [photoArr, firstNameArr, userIdArr];
+		}
+		return null;
 	}
 
 	let modalRoot = (
@@ -210,7 +479,7 @@ const App = () => {
 							}}
 							selected={activeType === 'dps'}
 							>
-								<Avatar size={64} style={{ marginBottom: 0 }}><Icon24User /></Avatar>
+								<Avatar size={64} style={{ marginBottom: 0 }} src={dps}></Avatar>
 								ДПС
 							</TabsItem>
 							<TabsItem className='tabsItem'
@@ -220,7 +489,7 @@ const App = () => {
 							}}
 							selected={activeType === 'dtp'}
 							>
-								<Avatar size={64} style={{ marginBottom: 0 }}><Icon24User /></Avatar>
+								<Avatar size={64} style={{ marginBottom: 0 }} src={dtp}></Avatar>
 								ДТП
 							</TabsItem>
 							<TabsItem className='tabsItem'
@@ -231,13 +500,13 @@ const App = () => {
 							}}
 							selected={activeType === 'sos'}
 							>
-								<Avatar size={64} style={{ marginBottom: 0 }}><Icon24User /></Avatar>
+								<Avatar size={64} style={{ marginBottom: 0 }} src={sos}></Avatar>
 								SOS
 							</TabsItem>
 						</Tabs>
 						</Cell>
 						<Separator style={{ margin: 0 }} />
-						<Cell id='description' asideContent=''>
+						<Cell id='description'>
 							<Text weight="regular" style={{ margin: 0,  padding: 0 }}>{activeDescription}</Text>
 						</Cell>
 					</Group>
@@ -266,10 +535,10 @@ const App = () => {
 					title: 'Добавить',
 					mode: 'primary',
 					action: () => {
-						sendMarkerInfo();
-						//onRemoveMarker();
+						addMarker();
 						setModal(null);
 						setComment('');
+						onRemoveMarker();
 					}},
 					{
 					title: 'Отменить',
@@ -298,11 +567,11 @@ const App = () => {
 					title: 'Добавить',
 					mode: 'primary',
 					action: () => {
-						sendMarkerInfo();
-						//onRemoveMarker();
+						addMarker();
 						setModal(null);
 						setComment('');
 						setActiveRows('');
+						onRemoveMarker();
 					}},
 					{
 					title: 'Отменить',
@@ -367,10 +636,10 @@ const App = () => {
 					title: 'Добавить',
 					mode: 'primary',
 					action: () => {
-						sendMarkerInfo();
-						//onRemoveMarker();
+						addMarker();
 						setModal(null);
 						setComment('');
+						onRemoveMarker();
 					}},
 					{
 					title: 'Отменить',
@@ -384,12 +653,186 @@ const App = () => {
 					<Textarea onChange={commentChange} />
 				</Group>
 			</ModalCard>
+			<ModalCard
+				id={infoCards['dtp']}
+				onClose={() => {
+					setModal(null);
+					}}
+				header={'ДТП'}
+				actions={[
+					{
+					title: 'Закрыть',
+					mode: 'secondary',
+					action: () => {
+						setModal(null);
+					}},
+					{
+					title: 'Подтвердить',
+					mode: 'primary',
+					action: () => {
+						confirmMarker();
+						setModal(null);
+					}}
+				]}>
+				{!clickedMarker ||
+						<Div className='cardInfo'>
+							{!divideConfirmed() || 
+								<Div className='counter'>
+									<UsersStack  className='userStack'
+											photos={divideConfirmed()[0]}
+											size="m"
+											count={3}
+											layout="vertical"
+										>{divideConfirmed()[0].length > 1 
+										? (divideConfirmed()[0].length === 2 
+										? `${divideConfirmed()[1][0]} и ${divideConfirmed()[1][1]} подтвердили.`
+										: `${divideConfirmed()[1][0]}, ${divideConfirmed()[1][1]} и еще ${divideConfirmed()[0].length - 2} подтвердили.`)
+										: (divideConfirmed()[1].length == 0 ? 'Пока не подтвердил ни один человек.' : `${divideConfirmed()[1][0]} подтвердил.`)
+											}
+									</UsersStack>
+								</Div>
+							}
+							<Group className='markerInfo' separator='hide'>
+							<Cell className='markerOwnerCell' asideContent={<Text>{getDiffTime(clickedMarker.datetime)}</Text>}>
+								<Link href={`https://vk.com/id${clickedMarker.userId}`} target='_blank'>
+									<Div className='markerOwner'>
+										<Div className='userPhoto'>
+											<Avatar className='userAvatar' size={44} style={{ margin: 0, padding: 0 }} src={clickedMarker.photo}/>
+										</Div>
+										<Div className='userName'>
+											<Title level='3' weight="medium" style={{margin: 0, padding: 0 }}>{clickedMarker.firstName + ' ' + clickedMarker.lastName[0] + '.'}</Title>
+										</Div>
+									</Div>
+								</Link>
+							</Cell>
+							</Group>
+							<Group className='markerComment' 
+								header={<Header className='markerCommentHeader' mode="primary">Комментарий</Header>}
+								description={clickedMarker.comment}
+								separator="hide">
+							</Group>
+						</Div>
+				}
+			</ModalCard>
+			<ModalCard
+				id={infoCards['dps']}
+				onClose={() => {
+					setModal(null);
+					}}
+				header={'ДПС'}
+				actions={[
+					{
+					title: 'Закрыть',
+					mode: 'secondary',
+					action: () => {
+						setModal(null);
+					}},
+					{
+					title: 'Подтвердить',
+					mode: 'primary',
+					action: () => {
+						confirmMarker();
+						setModal(null);
+					}}
+				]}>
+				{!clickedMarker ||
+						<Div className='cardInfo'>
+						{!divideConfirmed() || 
+								<Div className='counter'>
+									<UsersStack  className='userStack'
+											photos={divideConfirmed()[0]}
+											size="m"
+											count={3}
+											layout="vertical"
+										>{divideConfirmed()[0].length > 1 
+										? (divideConfirmed()[0].length === 2 
+										? `${divideConfirmed()[1][0]}, ${divideConfirmed()[1][1]} подтвердили.`
+										: `${divideConfirmed()[1][0]}, ${divideConfirmed()[1][1]} и еще ${divideConfirmed()[0].length - 2} подтвердили.`)
+										: (divideConfirmed()[1].length == 0 ? 'Пока не подтвердил ни один человек.' : `${divideConfirmed()[1][0]} подтвердил.`)
+											}
+									</UsersStack>
+								</Div>
+							}
+							<Group className='markerInfo' separator='hide'>
+							<Cell className='markerOwnerCell' asideContent={<Text>{getDiffTime(clickedMarker.datetime)}</Text>}>
+								<Link href={`https://vk.com/id${clickedMarker.userId}`} target='_blank'>
+									<Div className='markerOwner'>
+										<Div className='userPhoto'>
+											<Avatar className='userAvatar' size={44} style={{ margin: 0, padding: 0 }} src={clickedMarker.photo}/>
+										</Div>
+										<Div className='userName'>
+											<Title level='3' weight="medium" style={{margin: 0, padding: 0 }}>{clickedMarker.firstName + ' ' + clickedMarker.lastName[0] + '.'}</Title>
+										</Div>
+									</Div>
+								</Link>
+							</Cell>
+							</Group>
+							<Group className='markerComment' 
+								header={<Header className='markerCommentHeader' mode="primary">Комментарий</Header>}
+								description={clickedMarker.comment}
+								separator="hide">
+							</Group>
+						</Div>
+				}
+			</ModalCard>
+			<ModalCard
+				id={infoCards['sos']}
+				onClose={() => {
+					setModal(null);
+					}}
+				header={'Нужна помощь'}
+				actions={[
+					{
+					title: 'Закрыть',
+					mode: 'secondary',
+					action: () => {
+						setModal(null);
+					}}]}>
+					{!clickedMarker ||
+						<Div className='card'>
+							<Div className='cardInfo'>
+								<Group className='markerInfo' separator='hide'>
+								<Cell className='markerOwnerCell' asideContent={<Text>{getDiffTime(clickedMarker.datetime)}</Text>}>
+									<Link href={`https://vk.com/id${clickedMarker.userId}`} target='_blank'>
+										<Div className='markerOwner'>
+											<Div className='userPhoto'>
+												<Avatar className='userAvatar' size={44} style={{ margin: 0, padding: 0 }} src={clickedMarker.photo}/>
+											</Div>
+											<Div className='userName'>
+												<Title level='3' weight="medium" style={{margin: 0, padding: 0 }}>{clickedMarker.firstName + ' ' + clickedMarker.lastName[0] + '.'}</Title>
+											</Div>
+										</Div>
+									</Link>
+								</Cell>
+								</Group>
+								<Group className='markerComment' 
+									header={<Header className='markerCommentHeader' mode="primary">Комментарий</Header>}
+									description={clickedMarker.comment}
+									separator="hide">
+								</Group>
+							</Div>
+							{clickedMarker.userId !== fetchedUser.id ||
+								<Group className='removeButtonDiv'
+									separator="hide">
+									<Button mode='primary' size='xl' id='removeButton' onClick={() => {
+										console.log(clickedMarker.userId);
+										console.log(fetchedUser.userId);
+										removeMarker();
+										setModal(null);
+										}}>
+										Удалить
+									</Button>
+								</Group>}
+						</Div>
+				}
+			</ModalCard>
 		</ModalRoot>
 	);
 
 	return (
 		<Epic activeStory={activeStory} tabbar={
 			<Tabbar>
+				{snackbar}
 			  <TabbarItem
 				onClick={onStoryChange}
 				selected={activeStory === 'chatPanel'}
@@ -414,7 +857,7 @@ const App = () => {
 				<Chat id="chatPanel"/>
 			</View>
 			<View id="mapPanel" activePanel="mapPanel" modal = {modalRoot}>
-			 	<Map id="mapPanel" onSetMarker={onSetMarker} updateMarkersOnMap={updateMarkersOnMap}/>
+			 	<Map id="mapPanel" onSetMarker={onSetMarker} updateMarkersOnMap={updateMarkers} onClickMarker={onClickMarker}/>
 			</View>
 			<View id="configPanel" activePanel="configPanel">
 				<Config id="configPanel"/>

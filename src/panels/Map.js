@@ -3,8 +3,12 @@ import Panel from '@vkontakte/vkui/dist/components/Panel/Panel';
 import PanelHeader from '@vkontakte/vkui/dist/components/PanelHeader/PanelHeader';
 import Div from '@vkontakte/vkui/dist/components/Div/Div';
 
+import dps from '../img/dpsmarker.svg';
+import dtp from '../img/dtpmarker.svg';
+import sos from '../img/sosmarker.svg';
+
 var DG = require('2gis-maps');
-var markersArr = [];
+var markers = DG.featureGroup();
 
 class Map extends React.Component {
 	constructor (props) {
@@ -18,19 +22,49 @@ class Map extends React.Component {
 	}
 
 	popupOpenHandler(markerData) {
-		console.log(markerData);
+		this.props.onClickMarker(markerData);
 	}
-	
+
 	updateMarkers() {
-		this.props.updateMarkersOnMap().then((markers) => {
-			markersArr = markers;
-			for (let i=0; i < markersArr.length; i++) {
-				DG.marker([markersArr[i].data.lat, markersArr[i].data.lng])
+		this.props.updateMarkersOnMap().then((markersInfo) => {
+			markers.clearLayers();
+			for (let i=0; i < markersInfo.length; i++) {
+				let myIcon;
+				if (markersInfo[i].type === 'dps') {
+					myIcon = DG.icon({
+						iconUrl: dps,
+						iconRetinaUrl: dps,
+						iconSize: [40, 60],
+						iconAnchor: [20, 55],
+						// shadowUrl: 'my-icon-shadow.png',
+						// shadowRetinaUrl: 'my-icon-shadow@2x.png',
+					});
+				} else if (markersInfo[i].type === 'dtp') {
+					myIcon = DG.icon({
+						iconUrl: dtp,
+						iconRetinaUrl: dtp,
+						iconSize: [40, 60],
+						iconAnchor: [20, 55],
+						// shadowUrl: 'my-icon-shadow.png',
+						// shadowRetinaUrl: 'my-icon-shadow@2x.png',
+					});
+				} else {
+					myIcon = DG.icon({
+						iconUrl: sos,
+						iconRetinaUrl: sos,
+						iconSize: [40, 60],
+						iconAnchor: [20, 55],
+						// shadowUrl: 'my-icon-shadow.png',
+						// shadowRetinaUrl: 'my-icon-shadow@2x.png',
+					});
+				}
+				DG.marker([markersInfo[i].data.lat, markersInfo[i].data.lng], {icon: myIcon})
 				.on('click', () => {
-					this.popupOpenHandler(markersArr[i]);
+					this.popupOpenHandler(markersInfo[i]);
 				})
-				.addTo(this.map)
+				.addTo(markers);
 			}
+			markers.addTo(this.map);
 		})
 	}
 
@@ -45,7 +79,7 @@ class Map extends React.Component {
 		this.map.on('click', this.clickOnMapHandler);
 		this.timer = setInterval(() => {
 			this.updateMarkers();
-		}, 2000);
+		}, 3000);
 	}
 
 	componentWillUnmount() {
@@ -61,41 +95,5 @@ class Map extends React.Component {
 	  );
 	  }
 	}
-// function Map(props) {
-// 	const tmpMarker = null;
-// 	const [map, setMap] = useState(null);
 
-
-// 	const clickOnMapHandler = e => {
-// 		tmpMarker = DG.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
-// 		setTimeout(props.onSetMarker, 550, e, tmpMarker);
-// 	}
-
-// 	useEffect(() => {
-// 		async function mapInit() {
-// 			setMap(DG.map('map', {
-// 				center: [51.76, 55.11],
-// 				zoom: 11,
-// 				fullscreenControl: false,
-// 				geoclicker: false
-// 			}));
-// 		}
-// 		mapInit().then((res) => {
-// 			console.log(map);
-// 			map.on('click', clickOnMapHandler);
-
-// 		});
-// 		//map.on('click', clickOnMapHandler);
-// 		return function cleanup() {
-// 			setMap(null);
-// 		};
-// 	}, []);
-
-// 	return (
-// 		<Panel className="panel" id={props.id}>
-// 			<PanelHeader>Карта</PanelHeader>
-// 			<Div id='map'></Div>
-// 	  	</Panel>
-// 	  );
-// }
 export default Map;

@@ -39,3 +39,25 @@ body {
   display: flex;
   justify-content: center;
 }
+.markerOwner {
+  padding: 0px;
+  margin: 0px;
+  display: flex;
+  flex-direction: row;
+  justify-content: left;
+  align-items: center;
+}
+.userPhoto {
+  padding: 0px;
+}
+.userName {
+  padding: 0px 0px 0px 15px;
+}
+.markerComment {
+  padding: 0px 0px;
+  margin: 0px;
+}
+.markerCommentCell, .counter, .userStack, .markerInfo, .removeButtonDiv, #removeButton, .card, .cardInfo{
+  padding: 0px;
+  margin: 0px;
+}
