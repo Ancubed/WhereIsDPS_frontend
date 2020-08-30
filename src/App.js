@@ -83,6 +83,7 @@ const App = () => {
 	const [clickedMarker, setClickedMarker] = useState(null);
 	const [activeDescription, setActiveDescription] = useState(descriptions[activeType]);
 	const [snackbar, setSnackbar] = useState(null);
+	const [timer, setTimer] = useState(Date.now()-60000);
 	
 
 	useEffect(() => {
@@ -91,12 +92,10 @@ const App = () => {
 				const schemeAttribute = document.createAttribute('scheme');
 				schemeAttribute.value = data.scheme ? data.scheme : 'client_light';
 				document.body.attributes.setNamedItem(schemeAttribute);
-				console.log(schemeAttribute);
 			}
 		});
 		async function fetchData() {
 			const user = await bridge.send('VKWebAppGetUserInfo');
-			console.log(user);
 			setUser(user);
 			setPopout(null);
 		}
@@ -139,123 +138,85 @@ const App = () => {
 		return hours == 0 ? minutes + 'м. назад' : hours + 'ч. ' + minutes + 'м. назад';
 	}
 
+	function isTimeOut(needSec) {
+		let end = new Date;
+		let seconds = Math.floor((end - timer) / 1000);
+		console.log(seconds);
+		return seconds >= needSec ? true : false;
+	}
+
 	async function addMarker() {
-		let markerInfo = {
-			type: activeType,
-			userId: fetchedUser.id,
-			firstName: fetchedUser.first_name,
-			lastName: fetchedUser.last_name,
-			photo: fetchedUser.photo_100,
-			datetime: Date.now(),
-			data: marker._latlng,
-			comment: comment,
-		}
-		if (activeType === 'dps' || activeType === 'dtp') {
-			markerInfo.confirmed = [];
-		}
-		let response = false;
-		try {
-			response = await fetch("http://localhost:3010/addmarker", {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(markerInfo)
-			});
-		} catch(e) {
+		if (isTimeOut(20)) {
+			let markerInfo = {
+				type: activeType,
+				userId: fetchedUser.id,
+				firstName: fetchedUser.first_name,
+				lastName: fetchedUser.last_name,
+				photo: fetchedUser.photo_100,
+				datetime: Date.now(),
+				data: marker._latlng,
+				comment: comment,
+			}
+			if (activeType === 'dps' || activeType === 'dtp') {
+				markerInfo.confirmed = [];
+			}
+			let response = false;
+			try {
+				response = await fetch("https://vk-miniapps-where-is-dps.herokuapp.com/addmarker", {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(markerInfo)
+				});
+				setTimer(Date.now());
+			} catch(e) {
+				setSnackbar(
+					<Snackbar
+					layout="horizontal"
+					duration={2000}
+					onClose={() => {
+							setSnackbar(null);
+					}}
+					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+					>
+					Сервер недоступен.
+					</Snackbar>
+				);
+			}
+			if (!response) {
+				setSnackbar(
+					<Snackbar
+					layout="horizontal"
+					duration={2000}
+					onClose={() => {
+							setSnackbar(null);
+					}}
+					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+					>
+					Возникла серверная ошибка.
+					</Snackbar>
+				);
+			}
+		} else {
 			setSnackbar(
 				<Snackbar
 				layout="horizontal"
-				duration={2000}
+				duration={5000}
 				onClose={() => {
 						setSnackbar(null);
 				}}
 				before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
 				>
-				Сервер недоступен.
+				Вам нужно подождать 20 cекунд, прежде чем вы сможете поставить метку.<br/><br/>Спасибо за понимание.
 				</Snackbar>
 			);
 		}
-		if (!response) {
-			setSnackbar(
-				<Snackbar
-				layout="horizontal"
-				duration={2000}
-				onClose={() => {
-						setSnackbar(null);
-				}}
-				before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-				>
-				Возникла серверная ошибка.
-				</Snackbar>
-			);
-		}
-		// updateMarkersOnMap().then((markers) => {
-		// 	console.log(markers);
-		// })
-		
-		//место для ререндера карты после нового добавления маркера на карту
 	}
 
 	async function updateMarkers() {
-		// return [
-		// 	{
-		// 	  _id: '5f4a5174f1b66520e40db74a',
-		// 	  type: 'dtp',
-		// 	  userId: 178441004,
-		// 	  firstName: 'Андрей',
-		// 	  lastName: 'Антонов',
-		// 	  photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
-		// 	  datetime: 1598706036245,
-		// 	  data: { lat: 51.78186043052068, lng: 55.08256519446151 },
-		// 	  comment: 'Средний ряд, правый ряд. ',
-		// 	  confirmed: []
-		// 	},
-		// 	{
-		// 	  _id: '5f4a5183f1b66520e40db74b',
-		// 	  type: 'dps',
-		// 	  userId: 178441004,
-		// 	  firstName: 'Андрей',
-		// 	  lastName: 'Антонов',
-		// 	  photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
-		// 	  datetime: 1598706051086,
-		// 	  data: { lat: 51.775488008119375, lng: 55.17251575598494 },
-		// 	  comment: 'В обе стороны',
-		// 	  confirmed: [{
-		// 		  	userId: 178441004,
-		// 			firstName: 'Андрей',
-		// 			photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
-		// 		},
-		// 		{
-		// 			userId: 178441004,
-		// 		  	firstName: 'Андрей',
-		// 		  	photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
-		// 		},
-		// 		{
-		// 			userId: 178441004,
-		// 			firstName: 'Андрей',
-		// 			photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
-		// 		},
-		// 		{
-		// 			userId: 178441004,
-		// 			firstName: 'Андрей',
-		// 			photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
-		// 		}]
-		// 	},
-		// 	{
-		// 	  _id: '5f4a54e5f1b66520e40db74d',
-		// 	  type: 'sos',
-		// 	  userId: 178441004,
-		// 	  firstName: 'Андрей',
-		// 	  lastName: 'Антонов',
-		// 	  photo: 'https://sun9-5.userapi.com/impg/GI2ErVcS16HCJAznpNdqAncuQQdiY-7USnldNw/PVj1y8rfJJs.jpg?size=100x0&quality=88&crop=352,354,799,799&sign=7e5edc5f80102ee418174c2a12ffde37&ava=1',
-		// 	  datetime: 1598706917419,
-		// 	  data: { lat: 51.79884913146363, lng: 55.134201049804695 },
-		// 	  comment: 'Hi'
-		// 	}
-		//   ];
 		try {
-			let response = await fetch('http://localhost:3010/getmarkers');
+			let response = await fetch('https://vk-miniapps-where-is-dps.herokuapp.com/getmarkers');
 			let json = await response.json();
 			let markers = await json;
 			return markers;
@@ -280,7 +241,7 @@ const App = () => {
 		if (clickedMarker) {
 			let response = false;
 			try {
-				response = await fetch("http://localhost:3010/removemarker", {
+				response = await fetch("https://vk-miniapps-where-is-dps.herokuapp.com/removemarker", {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
@@ -323,60 +284,76 @@ const App = () => {
 	async function confirmMarker() {
 		if (clickedMarker) {
 			if (!includesId()) {
-				let response = false;
-				try {
-					response = await fetch("http://localhost:3010/confirmmarker", {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify({
-							idToConfirm: clickedMarker._id,
-							userData: {
-								userId: fetchedUser.id,
-								firstName: fetchedUser.first_name,
-								photo: fetchedUser.photo_100
-							}
-						})
-					});
-				} catch(e) {
-					setSnackbar(
-						<Snackbar
-						layout="horizontal"
-						duration={20000}
-						onClose={() => {
-								setSnackbar(null);
-						}}
-						before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-						>
-						Сервер недоступен.
-						</Snackbar>
-					);
-				}
-				if (!response) {
-					setSnackbar(
-						<Snackbar
-						layout="horizontal"
-						duration={20000}
-						onClose={() => {
-								setSnackbar(null);
-						}}
-						before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-						>
-						Возникла серверная ошибка.
-						</Snackbar>
-					);
+				if (isTimeOut(5)) {
+					let response = false;
+					try {
+						response = await fetch("https://vk-miniapps-where-is-dps.herokuapp.com/confirmmarker", {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify({
+								idToConfirm: clickedMarker._id,
+								userData: {
+									userId: fetchedUser.id,
+									firstName: fetchedUser.first_name,
+									photo: fetchedUser.photo_100
+								}
+							})
+						});
+						setTimer(Date.now());
+					} catch(e) {
+						setSnackbar(
+							<Snackbar
+							layout="horizontal"
+							duration={20000}
+							onClose={() => {
+									setSnackbar(null);
+							}}
+							before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+							>
+							Сервер недоступен.
+							</Snackbar>
+						);
+					}
+					if (!response) {
+						setSnackbar(
+							<Snackbar
+							layout="horizontal"
+							duration={20000}
+							onClose={() => {
+									setSnackbar(null);
+							}}
+							before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+							>
+							Возникла серверная ошибка.
+							</Snackbar>
+						);
+					} else {
+						setSnackbar(
+							<Snackbar
+							layout="horizontal"
+							duration={1000}
+							onClose={() => {
+									setSnackbar(null);
+							}}
+							before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Done fill="#fff" width={14} height={14} /></Avatar>}
+							>
+							Спасибо!
+							</Snackbar>
+						);
+					}
 				} else {
 					setSnackbar(
 						<Snackbar
 						layout="horizontal"
-						duration={1000}
+						duration={5000}
 						onClose={() => {
 								setSnackbar(null);
 						}}
-						before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Done fill="#fff" width={14} height={14} /></Avatar>}
+						before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
 						>
-						Спасибо!
+						Вам нужно подождать несколько секунд, прежде чем вы сможете подтвердить еще одну метку.<br/><br/>Спасибо за понимание.
 						</Snackbar>
 					);
 				}
@@ -421,9 +398,9 @@ const App = () => {
 	}
 
 	function includesId() {
-		if(clickedMarker.userId === fetchedUser.id) {
-			return true;
-		}
+		// if(clickedMarker.userId === fetchedUser.id) {
+		// 	return true;
+		// }
 		for(let i = 0; i < clickedMarker.confirmed.length; i++) {
 			if(clickedMarker.confirmed[i].userId === fetchedUser.id) {
 				return true;
@@ -706,11 +683,13 @@ const App = () => {
 								</Link>
 							</Cell>
 							</Group>
+							{clickedMarker.comment === '' || 
 							<Group className='markerComment' 
 								header={<Header className='markerCommentHeader' mode="primary">Комментарий</Header>}
 								description={clickedMarker.comment}
 								separator="hide">
 							</Group>
+							}
 						</Div>
 				}
 			</ModalCard>
@@ -767,11 +746,13 @@ const App = () => {
 								</Link>
 							</Cell>
 							</Group>
+							{clickedMarker.comment === '' || 
 							<Group className='markerComment' 
 								header={<Header className='markerCommentHeader' mode="primary">Комментарий</Header>}
 								description={clickedMarker.comment}
 								separator="hide">
 							</Group>
+							}
 						</Div>
 				}
 			</ModalCard>
@@ -805,18 +786,18 @@ const App = () => {
 									</Link>
 								</Cell>
 								</Group>
+								{clickedMarker.comment === '' || 
 								<Group className='markerComment' 
 									header={<Header className='markerCommentHeader' mode="primary">Комментарий</Header>}
 									description={clickedMarker.comment}
 									separator="hide">
 								</Group>
+								}
 							</Div>
 							{clickedMarker.userId !== fetchedUser.id ||
 								<Group className='removeButtonDiv'
 									separator="hide">
 									<Button mode='primary' size='xl' id='removeButton' onClick={() => {
-										console.log(clickedMarker.userId);
-										console.log(fetchedUser.userId);
 										removeMarker();
 										setModal(null);
 										}}>
