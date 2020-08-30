@@ -477,8 +477,8 @@ const App = () => {
 			if(clickedMarker.confirmed[i].userId === fetchedUser.id) {
 				return true;
 			}	
-			return false;
 		}
+		return false;
 	}
 
 	function divideConfirmed() {
