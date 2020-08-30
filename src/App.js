@@ -398,9 +398,9 @@ const App = () => {
 	}
 
 	function includesId() {
-		// if(clickedMarker.userId === fetchedUser.id) {
-		// 	return true;
-		// }
+		if(clickedMarker.userId === fetchedUser.id) {
+			return true;
+		}
 		for(let i = 0; i < clickedMarker.confirmed.length; i++) {
 			if(clickedMarker.confirmed[i].userId === fetchedUser.id) {
 				return true;
