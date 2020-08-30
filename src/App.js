@@ -35,7 +35,9 @@ import Icon28AddOutline from '@vkontakte/icons/dist/28/add_outline';
 import UsersStack from '@vkontakte/vkui/dist/components/UsersStack/UsersStack';
 import Icon16Done from '@vkontakte/icons/dist/16/done';
 import Icon16Cancel from '@vkontakte/icons/dist/16/cancel';
+import Icon24Send from '@vkontakte/icons/dist/24/send';
 import Snackbar from '@vkontakte/vkui/dist/components/Snackbar/Snackbar';
+import Gallery from '@vkontakte/vkui/dist/components/Gallery/Gallery';
 
 import '@vkontakte/vkui/dist/vkui.css';
 import './panels/stylesheets.css';
@@ -58,6 +60,14 @@ String.prototype.firstLetterCaps = function() {
 
 var marker = null;
 
+function getDiffTime(start) {
+	let end = new Date;
+	let diff = end - start;
+	let hours = Math.floor((diff % 86400000) / 3600000);
+	let minutes = Math.round(((diff % 86400000) % 3600000) / 60000);
+	return hours == 0 ? minutes + 'м. назад' : hours + 'ч. ' + minutes + 'м. назад';
+}
+
 const App = () => {
 	const descriptions = {
 		'dps': 'Экипаж ДПС при исполнении',
@@ -74,7 +84,7 @@ const App = () => {
 	}
 	const MODAL_PAGE_MARKER_SELECT = 'selectMarkerType';
 	const [fetchedUser, setUser] = useState(null);
-	const [comment, setComment] = useState('');
+	const [markerDescription, setMarkerDescription] = useState('');
 	const [activeStory, setActiveStory] = useState('mapPanel');
 	const [popout, setPopout] = useState(<ScreenSpinner size='large' />);
 	const [modal, setModal] = useState(null);
@@ -84,6 +94,7 @@ const App = () => {
 	const [activeDescription, setActiveDescription] = useState(descriptions[activeType]);
 	const [snackbar, setSnackbar] = useState(null);
 	const [timer, setTimer] = useState(Date.now()-60000);
+	const [newComment, setNewComment] = useState('');
 	
 
 	useEffect(() => {
@@ -116,8 +127,12 @@ const App = () => {
 		marker = null;
 	}
 
+	function markerDescriptionChange(e) {
+		setMarkerDescription(e.target.value);
+	}
+
 	function commentChange(e) {
-		setComment(e.target.value);
+		setNewComment(e.target.value);
 	}
 
 	function rowChange(letter) {
@@ -130,18 +145,9 @@ const App = () => {
 		setModal(infoCards[markerInfo.type]);
 	}
 
-	function getDiffTime(start) {
-		let end = new Date;
-		let diff = end - start;
-		let hours = Math.floor((diff % 86400000) / 3600000);
-		let minutes = Math.round(((diff % 86400000) % 3600000) / 60000);
-		return hours == 0 ? minutes + 'м. назад' : hours + 'ч. ' + minutes + 'м. назад';
-	}
-
 	function isTimeOut(needSec) {
 		let end = new Date;
 		let seconds = Math.floor((end - timer) / 1000);
-		console.log(seconds);
 		return seconds >= needSec ? true : false;
 	}
 
@@ -155,13 +161,15 @@ const App = () => {
 				photo: fetchedUser.photo_100,
 				datetime: Date.now(),
 				data: marker._latlng,
-				comment: comment,
+				markerDescription: markerDescription,
+				comments: []
 			}
 			if (activeType === 'dps' || activeType === 'dtp') {
 				markerInfo.confirmed = [];
 			}
 			let response = false;
 			try {
+				setPopout(<ScreenSpinner />);
 				response = await fetch("https://vk-miniapps-where-is-dps.herokuapp.com/addmarker", {
 					method: 'POST',
 					headers: {
@@ -219,6 +227,7 @@ const App = () => {
 			let response = await fetch('https://vk-miniapps-where-is-dps.herokuapp.com/getmarkers');
 			let json = await response.json();
 			let markers = await json;
+			setPopout(null);
 			return markers;
 		} catch(e) {
 			setSnackbar(
@@ -241,6 +250,7 @@ const App = () => {
 		if (clickedMarker) {
 			let response = false;
 			try {
+				setPopout(<ScreenSpinner />);
 				response = await fetch("https://vk-miniapps-where-is-dps.herokuapp.com/removemarker", {
 					method: 'POST',
 					headers: {
@@ -281,12 +291,76 @@ const App = () => {
 		}
 	}
 
+	async function addNewMarkerComment() {
+		if (newComment !== '' && clickedMarker) {
+			let response = false;
+			try {
+				setPopout(<ScreenSpinner />);
+				response = await fetch("https://vk-miniapps-where-is-dps.herokuapp.com/addmarkercomment", {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						idToConfirm: clickedMarker._id,
+						userData: {
+							userId: fetchedUser.id,
+							firstName: fetchedUser.first_name,
+							comment: newComment,
+							datetime: Date.now()
+						}
+					})
+				});
+			} catch(e) {
+				setSnackbar(
+					<Snackbar
+					layout="horizontal"
+					duration={20000}
+					onClose={() => {
+							setSnackbar(null);
+					}}
+					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+					>
+					Сервер недоступен.
+					</Snackbar>
+				);
+			}
+			if (!response) {
+				setSnackbar(
+					<Snackbar
+					layout="horizontal"
+					duration={20000}
+					onClose={() => {
+							setSnackbar(null);
+					}}
+					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+					>
+					Возникла серверная ошибка.
+					</Snackbar>
+				);
+			}
+		} else {
+			setSnackbar(
+				<Snackbar
+				layout="horizontal"
+				duration={20000}
+				onClose={() => {
+						setSnackbar(null);
+				}}
+				before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
+				>
+				Пустой комментарий отправлен не будет.
+				</Snackbar>);
+		}
+	}
+
 	async function confirmMarker() {
 		if (clickedMarker) {
 			if (!includesId()) {
 				if (isTimeOut(5)) {
 					let response = false;
 					try {
+						setPopout(<ScreenSpinner />);
 						response = await fetch("https://vk-miniapps-where-is-dps.herokuapp.com/confirmmarker", {
 							method: 'POST',
 							headers: {
@@ -376,23 +450,21 @@ const App = () => {
 	}
 
 	function dtpCommentChange(row) {
-		let localComment = comment.toLowerCase();
+		let localComment = markerDescription.toLowerCase();
 		if ((localComment.toLowerCase()).includes(row)) {
-			console.log(localComment.toLowerCase() + " " + row);
 			let indexOfComma = (localComment).indexOf(row) - 2;
-			console.log(indexOfComma);
 			let tmpComm = localComment.replace(new RegExp(row + '.\\s'), '');
 			if (indexOfComma >= 0 && tmpComm.charAt(indexOfComma + 2) === '') {
 				tmpComm = tmpComm.replaceAt(indexOfComma, '.');
 			}
-			setComment(tmpComm.firstLetterCaps());
+			setMarkerDescription(tmpComm.firstLetterCaps());
 		}
 		else {
 			if (localComment.length === 0) {
-				setComment(row.firstLetterCaps() + '. ');
+				setMarkerDescription(row.firstLetterCaps() + '. ');
 			}
-			else if (localComment[comment.length - 2] === '.') {
-				setComment(comment.replace('. ', ', ').firstLetterCaps() + row + '. ');
+			else if (localComment[markerDescription.length - 2] === '.') {
+				setMarkerDescription(markerDescription.replace('. ', ', ').firstLetterCaps() + row + '. ');
 			}
 		} 
 	}
@@ -503,7 +575,7 @@ const App = () => {
 				onClose={() => {
 					onRemoveMarker();
 					setModal(null);
-					setComment('');
+					setMarkerDescription('');
 					}}
 				header={'ДПС'}
 				actionsLayout="vertical"
@@ -514,7 +586,7 @@ const App = () => {
 					action: () => {
 						addMarker();
 						setModal(null);
-						setComment('');
+						setMarkerDescription('');
 						onRemoveMarker();
 					}},
 					{
@@ -522,11 +594,11 @@ const App = () => {
 					mode: 'secondary',
 					action: () => {
 						setModal(MODAL_PAGE_MARKER_SELECT);
-						setComment('');
+						setMarkerDescription('');
 					}}
 				]}>
-				<Group id='comment' header={<Header style={{ margin: 0,  paddingLeft: 0 }} mode="secondary">Комментарий</Header>}>
-					<Textarea onChange={commentChange} />
+				<Group id='comment' header={<Header style={{ margin: 0,  paddingLeft: 0 }} mode="secondary">Описание</Header>}>
+					<Textarea onChange={markerDescriptionChange} />
 				</Group>
 			</ModalCard>
 			<ModalCard
@@ -534,7 +606,7 @@ const App = () => {
 				onClose={() => {
 					onRemoveMarker();
 					setModal(null);
-					setComment('');
+					setMarkerDescription('');
 					setActiveRows('');
 					}}
 				header={'ДТП'}
@@ -546,7 +618,7 @@ const App = () => {
 					action: () => {
 						addMarker();
 						setModal(null);
-						setComment('');
+						setMarkerDescription('');
 						setActiveRows('');
 						onRemoveMarker();
 					}},
@@ -555,7 +627,7 @@ const App = () => {
 					mode: 'secondary',
 					action: () => {
 						setModal(MODAL_PAGE_MARKER_SELECT);
-						setComment('');
+						setMarkerDescription('');
 						setActiveRows('');
 					}}
 				]}>
@@ -595,8 +667,8 @@ const App = () => {
 					</Tabs>
 					</Cell>
 				</Group>
-				<Group id='comment' header={<Header style={{ margin: 0,  paddingLeft: 0 }} mode="secondary">Комментарий</Header>}>
-					<Input type='text' defaultValue={comment} onChange={commentChange} />
+				<Group id='comment' header={<Header style={{ margin: 0,  paddingLeft: 0 }} mode="secondary">Описание</Header>}>
+					<Input type='text' defaultValue={markerDescription} onChange={markerDescriptionChange} />
 				</Group>
 			</ModalCard>
 			<ModalCard
@@ -604,7 +676,7 @@ const App = () => {
 				onClose={() => {
 					onRemoveMarker();
 					setModal(null);
-					setComment('');
+					setMarkerDescription('');
 					}}
 				header={'Помощь'}
 				actionsLayout="vertical"
@@ -615,7 +687,7 @@ const App = () => {
 					action: () => {
 						addMarker();
 						setModal(null);
-						setComment('');
+						setMarkerDescription('');
 						onRemoveMarker();
 					}},
 					{
@@ -623,11 +695,11 @@ const App = () => {
 					mode: 'secondary',
 					action: () => {
 						setModal(MODAL_PAGE_MARKER_SELECT);
-						setComment('');
+						setMarkerDescription('');
 					}}
 				]}>
 				<Group id='comment' header={<Header style={{ margin: 0,  paddingLeft: 0 }} mode="secondary">Что случилось</Header>}>
-					<Textarea onChange={commentChange} />
+					<Textarea onChange={markerDescriptionChange} />
 				</Group>
 			</ModalCard>
 			<ModalCard
@@ -683,13 +755,35 @@ const App = () => {
 								</Link>
 							</Cell>
 							</Group>
-							{clickedMarker.comment === '' || 
-							<Group className='markerComment' 
-								header={<Header className='markerCommentHeader' mode="primary">Комментарий</Header>}
-								description={clickedMarker.comment}
-								separator="hide">
-							</Group>
+							{clickedMarker.markerDescription === '' || 
+								<Group className='markerDescription' 
+									header={<Header className='markerDescriptionHeader' mode="primary">Описание</Header>}
+									description={clickedMarker.markerDescription}
+									separator="hide">
+								</Group>
 							}
+							<Group className='commentDescription' 
+								header={<Header className='markerCommentsHeader' mode="primary">Комментарии</Header>}>
+								{clickedMarker.comments.length === 0 || 
+								<Gallery 
+									className='commentsDiv'
+									slideWidth="90%"
+									align="center">
+									{clickedMarker.comments.map((comment, index) => 
+										<Comment key={index} comment={comment}/>)
+									}
+								</Gallery>
+								}	
+								<Div className='commentInputDiv'>
+									<Input className='commentInput' type="text" placeholder='Введите комментарий' maxLength="64" onChange={commentChange}/>
+									<Button mode='secondary' className='commentButton' onClick={() => {
+										addNewMarkerComment();
+										setModal(null);
+										}}>
+										<Icon24Send/>
+									</Button>
+								</Div>
+							</Group>
 						</Div>
 				}
 			</ModalCard>
@@ -746,13 +840,35 @@ const App = () => {
 								</Link>
 							</Cell>
 							</Group>
-							{clickedMarker.comment === '' || 
-							<Group className='markerComment' 
-								header={<Header className='markerCommentHeader' mode="primary">Комментарий</Header>}
-								description={clickedMarker.comment}
+							{clickedMarker.markerDescription === '' || 
+							<Group className='markerDescription' 
+								header={<Header className='markerDescriptionHeader' mode="primary">Описание</Header>}
+								description={clickedMarker.markerDescription}
 								separator="hide">
 							</Group>
 							}
+							<Group className='commentDescription' 
+								header={<Header className='markerCommentsHeader' mode="primary">Комментарии</Header>}>
+								{clickedMarker.comments.length === 0 || 
+								<Gallery 
+									className='commentsDiv'
+									slideWidth="90%"
+									align="center">
+									{clickedMarker.comments.map((comment, index) => 
+										<Comment key={index} comment={comment}/>)
+									}
+								</Gallery>
+								}	
+								<Div className='commentInputDiv'>
+									<Input className='commentInput' type="text" placeholder='Введите комментарий' maxLength="64" onChange={commentChange}/>
+									<Button mode='secondary' className='commentButton' onClick={() => {
+										addNewMarkerComment();
+										setModal(null);
+										}}>
+										<Icon24Send/>
+									</Button>
+								</Div>
+							</Group>
 						</Div>
 				}
 			</ModalCard>
@@ -786,14 +902,36 @@ const App = () => {
 									</Link>
 								</Cell>
 								</Group>
-								{clickedMarker.comment === '' || 
-								<Group className='markerComment' 
-									header={<Header className='markerCommentHeader' mode="primary">Комментарий</Header>}
-									description={clickedMarker.comment}
-									separator="hide">
-								</Group>
+								{clickedMarker.markerDescription === '' || 
+									<Group className='markerDescription' 
+										header={<Header className='markerDescriptionHeader' mode="primary">Описание</Header>}
+										description={clickedMarker.markerDescription}
+										separator="hide">
+									</Group>
 								}
 							</Div>
+							<Group className='commentDescription' 
+								header={<Header className='markerCommentsHeader' mode="primary">Комментарии</Header>}>
+								{clickedMarker.comments.length === 0 || 
+								<Gallery 
+									className='commentsDiv'
+									slideWidth="90%"
+									align="center">
+									{clickedMarker.comments.map((comment, index) => 
+										<Comment key={index} comment={comment}/>)
+									}
+								</Gallery>
+								}	
+								<Div className='commentInputDiv'>
+									<Input className='commentInput' type="text" placeholder='Введите комментарий' maxLength="64" onChange={commentChange}/>
+									<Button mode='secondary' className='commentButton' onClick={() => {
+										addNewMarkerComment();
+										setModal(null);
+										}}>
+										<Icon24Send/>
+									</Button>
+								</Div>
+							</Group>
 							{clickedMarker.userId !== fetchedUser.id ||
 								<Group className='removeButtonDiv'
 									separator="hide">
@@ -837,7 +975,7 @@ const App = () => {
 			<View id="chatPanel" activePanel="chatPanel">
 				<Chat id="chatPanel"/>
 			</View>
-			<View id="mapPanel" activePanel="mapPanel" modal = {modalRoot}>
+			<View id="mapPanel" activePanel="mapPanel" popout={popout} modal={modalRoot}>
 			 	<Map id="mapPanel" onSetMarker={onSetMarker} updateMarkersOnMap={updateMarkers} onClickMarker={onClickMarker}/>
 			</View>
 			<View id="configPanel" activePanel="configPanel">
@@ -846,6 +984,26 @@ const App = () => {
 			
 		  </Epic>
 	);
+}
+
+function Comment(props) {
+	let comment = props.comment;
+	return (
+	<Div size="m" className='commentCell'>
+		<Group className='commentInfo'
+		separator='hide'
+		description={comment.comment}>
+			<Cell className='commentOwnerCell' asideContent={<Text>{getDiffTime(comment.datetime)}</Text>}>
+				<Link href={`https://vk.com/id${comment.userId}`} target='_blank'>
+					<Div className='commentOwner'>
+						<Div className='commentUserName'>
+							<Title level='3' weight="medium" style={{margin: 0, padding: 0 }}>{comment.firstName}</Title>
+						</Div>
+					</Div>
+				</Link>
+			</Cell>
+		</Group>
+	</Div>);
 }
 
 export default App;

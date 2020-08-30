@@ -1,5 +1,9 @@
 body {
   --mapHeight: 82.5vh;
+  --commentBorderColor: #4986CC;
+}
+body[scheme="space_gray"] {
+  --commentBorderColor: #FFFFFF;
 }
 .panel {
   padding: 0px;
@@ -40,8 +44,6 @@ body {
   justify-content: center;
 }
 .markerOwner {
-  padding: 0px;
-  margin: 0px;
   display: flex;
   flex-direction: row;
   justify-content: left;
@@ -53,11 +55,42 @@ body {
 .userName {
   padding: 0px 0px 0px 15px;
 }
-.markerComment {
+.markerDescription {
   padding: 0px 0px;
   margin: 0px;
 }
-.markerCommentCell, .counter, .userStack, .markerInfo, .removeButtonDiv, #removeButton, .card, .cardInfo{
+.markerCommentCell, .commentsDiv, .commentCell, .commentInfo, .commentOwnerCell, .commentOwner, .commentUserName, .commentOwner, .commentInput, .markerCommentsHeader, .markerOwner, .markerOwnerCell, .counter, .userStack, .markerInfo, .removeButtonDiv, #removeButton, .card, .cardInfo{
   padding: 0px;
   margin: 0px;
+}
+.commentDescription {
+  padding: 0px 12px;
+  margin: 0px;
+}
+.commentInputDiv {
+  padding: 0px;
+  margin: 0px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  flex-flow: nowrap;
+}
+.commentInput {
+  width: 77%;
+}
+.commentButton {
+  width: 20%;
+  height: 44px;
+}
+.commentsDiv {
+  height: 105px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.commentInfo {
+  width: 98%;
+  height: 100px;
+  border: 1px solid var(--commentBorderColor);
+  border-radius: 5px;
 }
