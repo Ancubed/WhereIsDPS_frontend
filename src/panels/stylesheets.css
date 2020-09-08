@@ -1,9 +1,25 @@
 body {
   --mapHeight: 82.5vh;
   --commentBorderColor: #4986CC;
+  --chatCityColor: #FFFFFF;
+  --chatSendMessageColor: #FFFFFF;
+  --rowTabsColor: #FFFFFF;
+  --messageColor: #EBEDF0;
+  --myMessageColor: #CCE4FF;
+  --myMessageDateColor: #C0C4CC;
+  --buttonScrollDownBackground:#FFFFFF;
+  --buttonScrollDownShadow: #2C2D2F;
 }
 body[scheme="space_gray"] {
   --commentBorderColor: #FFFFFF;
+  --chatCityColor: #19191A;
+  --chatSendMessageColor: #2C2D2F;
+  --messageColor: #2C2D2F;
+  --myMessageColor: #454648;
+  --myMessageDateColor: #59595C;
+  --rowTabsColor: #2C2D2F;
+  --buttonScrollDownBackground: #2C2D2F;
+  --buttonScrollDownShadow: #2C2D2F;
 }
 .panel {
   padding: 0px;
@@ -36,6 +52,7 @@ body[scheme="space_gray"] {
   margin: 0px;
   display: flex;
   flex-direction: row;
+  background-color: var(--rowTabsColor);
 }
 .popupHeader {
   margin: 0px;
@@ -59,7 +76,13 @@ body[scheme="space_gray"] {
   padding: 0px 0px;
   margin: 0px;
 }
-.markerCommentCell, .commentsDiv, .commentCell, .commentInfo, .commentOwnerCell, .commentOwner, .commentUserName, .commentOwner, .commentInput, .markerCommentsHeader, .markerOwner, .markerOwnerCell, .counter, .userStack, .markerInfo, .removeButtonDiv, #removeButton, .card, .cardInfo{
+.markerCommentCell, .commentsDiv, .commentCell, .commentInfo,
+.commentOwnerCell, .commentOwner, .commentUserName, .commentOwner, 
+.commentInput, .markerCommentsHeader, .markerOwner, .markerOwnerCell, 
+.counter, .userStack, .markerInfo, .removeButtonDiv, #removeButton, .card, 
+.cardInfo, #chat, #chatCityDiv, #chatMessagesDiv, #chatMessageSendDiv,
+.messageOwnerCell .messageOwnerLink, .messageOwner, .messageUserName, .messageText, 
+.messageOwnerCell, .messageContent, .myMessageDate, .myMessageDateDiv, #chatMessagesDivCont {
   padding: 0px;
   margin: 0px;
 }
@@ -69,12 +92,13 @@ body[scheme="space_gray"] {
 }
 .commentInputDiv {
   padding: 0px;
-  margin: 0px;
+  margin: 0px 0px 20px 0px;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
   flex-flow: nowrap;
+  align-items: center;
 }
 .commentInput {
   width: 77%;
@@ -93,4 +117,124 @@ body[scheme="space_gray"] {
   height: 100px;
   border: 1px solid var(--commentBorderColor);
   border-radius: 5px;
+}
+.CellButton--aln-left .CellButton__in {
+  height: 20px;
+  display: flex;
+  justify-content: center;
+}
+#openClosePanelHeaderButton {
+  height: 80%;
+}
+.PanelHeader--ios.PanelHeader--no-right .PanelHeader__content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.Cell--ios .Cell__main {
+  padding: 0px;
+}
+#chatMessageSendDiv {
+  box-sizing: border-box;
+  padding: 0px 22px 5px 22px;
+  margin: 0px 0px 0px 0px;
+  position: fixed;
+  bottom: 48px;
+  width: 100%;
+  height: 65px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  flex-flow: nowrap;
+  background-color: var(--chatSendMessageColor);
+  z-index: 10;
+}
+#chatCityDiv {
+  box-sizing: border-box;
+  padding: 0px 10px 0px 10px;
+  width: 100%;
+  position: fixed;
+  top: 52px;
+  background-color: var(--chatCityColor);
+  z-index: 10;
+}
+#chatMessagesDiv {
+  padding: 5px 10px 115px 10px;
+}
+#chatMessageInput {
+  width: 100%;
+  margin: 0px;
+}
+.Input {
+  width: 100%;
+}
+#messageSendButton {
+  display: none;
+  width: 60px;
+  height: 44px;
+  margin-left: 15px;
+}
+.message, .myMessage {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  border-radius: 15px;
+  background-color: var(--messageColor);
+  margin-bottom: 5px;
+}
+.messageContent {
+  width: 100%;
+  max-width: 100%;
+  margin-left: 15px;
+}
+.messageOwnerCell {
+  width: 100%;
+  margin-bottom: 5px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  overflow: hidden;
+}
+.messageText {
+  width: 80%;
+  word-wrap: break-word;
+  word-break: break-all;
+}
+.messageTextText {
+  max-width: 100%;
+  height: auto;
+  padding: 0px;
+  margin: 0px;
+  word-wrap: break-word;
+  word-break: break-all;
+}
+.myMessage {
+  display: flex;
+  align-items: center;
+  background-color: var(--myMessageColor);
+}
+#chatMessagesEmpty {
+  display: flex;
+  height: 100%;
+  align-content: center;
+  justify-content: center;
+  padding: 240px 10px 118px 10px;
+}
+.secondaryText {
+  color: #818C99;
+}
+#buttonScrollDown {
+  position: fixed;
+  display: none;
+  right: 20px;
+  bottom: 140px;
+  z-index: 20;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  opacity: 100%;
+  background-color: var(--buttonScrollDownBackground);
+  box-shadow: 0px 0px 1px 0px var(--buttonScrollDownShadow);
 }

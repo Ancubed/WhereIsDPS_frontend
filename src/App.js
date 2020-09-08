@@ -159,7 +159,6 @@ const App = () => {
 				firstName: fetchedUser.first_name,
 				lastName: fetchedUser.last_name,
 				photo: fetchedUser.photo_100,
-				datetime: Date.now(),
 				data: marker._latlng,
 				markerDescription: markerDescription,
 				comments: []
@@ -306,8 +305,7 @@ const App = () => {
 						userData: {
 							userId: fetchedUser.id,
 							firstName: fetchedUser.first_name,
-							comment: newComment,
-							datetime: Date.now()
+							comment: newComment
 						}
 					})
 				});
@@ -956,7 +954,7 @@ const App = () => {
 				onClick={onStoryChange}
 				selected={activeStory === 'chatPanel'}
 				data-story="chatPanel"
-				text="Чат"
+				text="Канал"
 			  ><Icon28MessageOutline /></TabbarItem>
 			  <TabbarItem
 				onClick={onStoryChange}
@@ -964,23 +962,23 @@ const App = () => {
 				data-story="mapPanel"
 				text="Карта"
 			  ><Icon28PlaceOutline /></TabbarItem>
-			   <TabbarItem
+			   {/* {<TabbarItem
 				onClick={onStoryChange}
 				selected={activeStory === 'configPanel'}
 				data-story="configPanel"
 				text="Настройки"
-			  ><Icon28SettingsOutline /></TabbarItem>
+			  ><Icon28SettingsOutline /></TabbarItem>} */}
 			</Tabbar>
 		  }>
 			<View id="chatPanel" activePanel="chatPanel">
-				<Chat id="chatPanel"/>
+				<Chat id="chatPanel" fetchedUser={fetchedUser}/>
 			</View>
 			<View id="mapPanel" activePanel="mapPanel" popout={popout} modal={modalRoot}>
 			 	<Map id="mapPanel" onSetMarker={onSetMarker} updateMarkersOnMap={updateMarkers} onClickMarker={onClickMarker}/>
 			</View>
-			<View id="configPanel" activePanel="configPanel">
+			{/* {<View id="configPanel" activePanel="configPanel">
 				<Config id="configPanel"/>
-			</View>
+			</View>} */}
 			
 		  </Epic>
 	);

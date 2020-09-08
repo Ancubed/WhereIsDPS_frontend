@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import bridge from '@vkontakte/vk-bridge';
 import Panel from '@vkontakte/vkui/dist/components/Panel/Panel';
 import PanelHeader from '@vkontakte/vkui/dist/components/PanelHeader/PanelHeader';
 import Div from '@vkontakte/vkui/dist/components/Div/Div';
@@ -6,14 +7,18 @@ import Div from '@vkontakte/vkui/dist/components/Div/Div';
 import dps from '../img/dpsmarker.svg';
 import dtp from '../img/dtpmarker.svg';
 import sos from '../img/sosmarker.svg';
+import positionImg from '../img/position.svg';
 
 var DG = require('2gis-maps');
 var markers = DG.featureGroup();
+
 
 class Map extends React.Component {
 	constructor (props) {
 		super(props);
 		this.tmpMarker = null;
+		this.positionAccess = false;
+		this.myPosition = null;
 	}
 
 	clickOnMapHandler = e => {
@@ -23,6 +28,20 @@ class Map extends React.Component {
 
 	popupOpenHandler(markerData) {
 		this.props.onClickMarker(markerData);
+	}
+
+	async updatePosition() {
+		try {
+			await bridge.send("VKWebAppGetGeodata").then((e) => {
+				if (e.available && this.myPosition) {
+					this.myPosition.setLatLng([e.lat, e.long]);
+				}
+			}, reason => {
+				console.log('Cant get a geolocation	');
+			});
+		} catch(e) {
+		}
+
 	}
 
 	updateMarkers() {
@@ -35,27 +54,21 @@ class Map extends React.Component {
 						iconUrl: dps,
 						iconRetinaUrl: dps,
 						iconSize: [40, 60],
-						iconAnchor: [20, 55],
-						// shadowUrl: 'my-icon-shadow.png',
-						// shadowRetinaUrl: 'my-icon-shadow@2x.png',
+						iconAnchor: [20, 55]
 					});
 				} else if (markersInfo[i].type === 'dtp') {
 					myIcon = DG.icon({
 						iconUrl: dtp,
 						iconRetinaUrl: dtp,
 						iconSize: [40, 60],
-						iconAnchor: [20, 55],
-						// shadowUrl: 'my-icon-shadow.png',
-						// shadowRetinaUrl: 'my-icon-shadow@2x.png',
+						iconAnchor: [20, 55]
 					});
 				} else {
 					myIcon = DG.icon({
 						iconUrl: sos,
 						iconRetinaUrl: sos,
 						iconSize: [40, 60],
-						iconAnchor: [20, 55],
-						// shadowUrl: 'my-icon-shadow.png',
-						// shadowRetinaUrl: 'my-icon-shadow@2x.png',
+						iconAnchor: [20, 55]
 					});
 				}
 				DG.marker([markersInfo[i].data.lat, markersInfo[i].data.lng], {icon: myIcon})
@@ -68,22 +81,73 @@ class Map extends React.Component {
 		})
 	}
 
-	componentDidMount() {
+	async componentDidMount() {
+		this.myPosition = DG.marker([0, 0], {icon: DG.icon({
+			iconUrl: positionImg,
+			iconRetinaUrl: positionImg,
+			iconSize: [24, 24],
+			iconAnchor: [12, 13]})
+		});
+		let lat = localStorage.lat || 55.74489304677828;
+		let lng = localStorage.lng || 37.61306762695313;
+		let zoom = localStorage.zoom || 10;
+		try {
+			await bridge.send("VKWebAppGetGeodata").then((e) => {
+				if (e.available && e.lat && e.long) {
+					lat = e.lat;
+					lng = e.long;
+					this.myPosition.setLatLng([lat, lng]);
+					this.positionAccess = true;
+				}
+			}, reason => {
+				console.log('Cant get a geolocation');
+			});
+		} catch(e) {
+			console.log('cant load a position');
+		}
 		this.map = DG.map('map', {
-			center: [51.76, 55.11],
-			zoom: 11,
+			center: [lat, lng],
+			zoom: zoom,
 			fullscreenControl: false,
-			geoclicker: false
+			geoclicker: false,
+			minZoom: 4,
+			touchZoom: true
+		});
+		this.map.on('projectchange', (e) => {
+			console.log(e.getProject());
+		});
+		this.map.on('zoom', () => {
+			localStorage.zoom = this.map.getZoom();
+		});
+		this.map.on('move', () => {
+			clearInterval(this.timerForCentred);
+			if (this.positionAccess && this.myPosition) {
+				this.timerForCentred = setTimeout(() => {
+					this.map.flyTo(this.myPosition.getLatLng(), localStorage.zoom || 10, {animate: true, duration: 1});
+				}, 15000);
+			}
+			let center = this.map.getCenter();
+			localStorage.lat = center.lat;
+			localStorage.lng = center.lng;
 		});
 		this.updateMarkers();
 		this.map.on('click', this.clickOnMapHandler);
-		this.timer = setInterval(() => {
+		this.timerForMarkers = setInterval(() => {
 			this.updateMarkers();
 		}, 3000);
+		if (this.positionAccess) {
+			this.myPosition.addTo(this.map);
+			this.timerForPosition = setInterval(() => {
+				this.updatePosition();
+			}, 800);
+		}
 	}
 
 	componentWillUnmount() {
-    	clearInterval(this.timer);
+		clearInterval(this.timerForMarkers);
+		clearInterval(this.timerForPosition);
+		clearInterval(this.timerForCentred);
+		this.myPosition = null;
   	}	
 
 	render () {
