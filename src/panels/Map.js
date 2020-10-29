@@ -3,6 +3,7 @@ import bridge from '@vkontakte/vk-bridge';
 import Panel from '@vkontakte/vkui/dist/components/Panel/Panel';
 import PanelHeader from '@vkontakte/vkui/dist/components/PanelHeader/PanelHeader';
 import Div from '@vkontakte/vkui/dist/components/Div/Div';
+import Title from '@vkontakte/vkui/dist/components/Typography/Title/Title';
 
 import dps from '../img/dpsmarker.svg';
 import dtp from '../img/dtpmarker.svg';
@@ -153,7 +154,11 @@ class Map extends React.Component {
 	render () {
 	  return (
 		<Panel className="panel" id={this.props.id}>
-			<PanelHeader>Карта</PanelHeader>
+				<PanelHeader>
+					<Title level="2" weight="bold" style={{ margin: 0, padding: 0 }}>
+						Карта
+					</Title>
+				</PanelHeader>
 			<Div id='map'></Div>
 	  	</Panel>
 	  );

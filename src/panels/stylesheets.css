@@ -41,12 +41,6 @@ body[scheme="space_gray"] {
   margin-top: 0px;
   padding: 0px;
 }
-#description {
-  margin: 0px;
-  padding: 0px;
-  display: flex;
-  justify-content: center;
-}
 #rowTabs {
   padding: 0px;
   margin: 0px;
@@ -72,17 +66,14 @@ body[scheme="space_gray"] {
 .userName {
   padding: 0px 0px 0px 15px;
 }
-.markerDescription {
-  padding: 0px 0px;
-  margin: 0px;
-}
-.markerCommentCell, .commentsDiv, .commentCell, .commentInfo,
+#app, #firstScreen, .markerDescription, .markerCommentCell, .commentsDiv, .commentCell, .commentInfo,
 .commentOwnerCell, .commentOwner, .commentUserName, .commentOwner, 
 .commentInput, .markerCommentsHeader, .markerOwner, .markerOwnerCell, 
 .counter, .userStack, .markerInfo, .removeButtonDiv, #removeButton, .card, 
 .cardInfo, #chat, #chatCityDiv, #chatMessagesDiv, #chatMessageSendDiv,
-.messageOwnerCell .messageOwnerLink, .messageOwner, .messageUserName, .messageText, 
-.messageOwnerCell, .messageContent, .myMessageDate, .myMessageDateDiv, #chatMessagesDivCont {
+.messageOwnerLink, .messageOwner, .messageUserName, .messageText, 
+.messageOwnerCell, .messageContent, .myMessageDate, .myMessageDateDiv, #chatMessagesDivCont, 
+#cityList, .Search--ios, .Search, .cardButtons {
   padding: 0px;
   margin: 0px;
 }
@@ -118,6 +109,13 @@ body[scheme="space_gray"] {
   border: 1px solid var(--commentBorderColor);
   border-radius: 5px;
 }
+.cardButtons {
+  display: flex;
+  flex-direction: row;
+}
+.primaryButton, .commentButton {
+  margin-left: 12px;
+}
 .CellButton--aln-left .CellButton__in {
   height: 20px;
   display: flex;
@@ -132,7 +130,13 @@ body[scheme="space_gray"] {
   align-items: center;
 }
 .Cell--ios .Cell__main {
+  padding: 11px 8px 11px 0;
+}
+#description {
+  margin: 0px;
   padding: 0px;
+  display: flex;
+  justify-content: center;
 }
 #chatMessageSendDiv {
   box-sizing: border-box;
@@ -152,12 +156,14 @@ body[scheme="space_gray"] {
 }
 #chatCityDiv {
   box-sizing: border-box;
-  padding: 0px 10px 0px 10px;
+  padding: 12px 10px 0px 10px;
   width: 100%;
+  height: 100%;
   position: fixed;
   top: 52px;
   background-color: var(--chatCityColor);
   z-index: 10;
+  overflow-y: scroll;
 }
 #chatMessagesDiv {
   padding: 5px 10px 115px 10px;
@@ -216,11 +222,10 @@ body[scheme="space_gray"] {
   background-color: var(--myMessageColor);
 }
 #chatMessagesEmpty {
-  display: flex;
   height: 100%;
-  align-content: center;
+  text-align: center;
   justify-content: center;
-  padding: 240px 10px 118px 10px;
+  padding: 220px 10px 118px 10px;
 }
 .secondaryText {
   color: #818C99;
@@ -234,7 +239,21 @@ body[scheme="space_gray"] {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  opacity: 100%;
   background-color: var(--buttonScrollDownBackground);
   box-shadow: 0px 0px 1px 0px var(--buttonScrollDownShadow);
+}
+#cityList {
+  margin: 15px 0px 80px 0px;
+  height: 100%; 
+}
+.cityCellButton {
+  width: 100%;
+  height: 35px;
+}
+.CellButton .CellButton__content {
+  width: 100%;
+  overflow-x: scroll;
+}
+#panelHeader {
+  z-index: 11;
 }

@@ -5,9 +5,6 @@ import ScreenSpinner from '@vkontakte/vkui/dist/components/ScreenSpinner/ScreenS
 import Epic from '@vkontakte/vkui/dist/components/Epic/Epic';
 import Tabbar from '@vkontakte/vkui/dist/components/Tabbar/Tabbar';
 import TabbarItem from '@vkontakte/vkui/dist/components/TabbarItem/TabbarItem';
-import Icon28MessageOutline from '@vkontakte/icons/dist/28/message_outline';
-import Icon28PlaceOutline from '@vkontakte/icons/dist/28/place_outline';
-import Icon28SettingsOutline from '@vkontakte/icons/dist/28/settings_outline';
 import ModalRoot from '@vkontakte/vkui/dist/components/ModalRoot/ModalRoot';
 import ModalPage from '@vkontakte/vkui/dist/components/ModalPage/ModalPage';
 import ModalCard from '@vkontakte/vkui/dist/components/ModalCard/ModalCard';
@@ -21,23 +18,25 @@ import Cell from '@vkontakte/vkui/dist/components/Cell/Cell';
 import Input from '@vkontakte/vkui/dist/components/Input/Input';
 import PanelHeaderButton from '@vkontakte/vkui/dist/components/PanelHeaderButton/PanelHeaderButton';
 import Title from '@vkontakte/vkui/dist/components/Typography/Title/Title';
-import Icon24Cancel from '@vkontakte/icons/dist/24/cancel';
-import Icon24User from '@vkontakte/icons/dist/24/user';
 import Text from '@vkontakte/vkui/dist/components/Typography/Text/Text';
-import Subhead from '@vkontakte/vkui/dist/components/Typography/Subhead/Subhead';
 import Textarea from '@vkontakte/vkui/dist/components/Textarea/Textarea';
 import Tabs from '@vkontakte/vkui/dist/components/Tabs/Tabs';
 import Link from '@vkontakte/vkui/dist/components/Link/Link';
 import TabsItem from '@vkontakte/vkui/dist/components/TabsItem/TabsItem';
 import Avatar from '@vkontakte/vkui/dist/components/Avatar/Avatar';
 import Separator from '@vkontakte/vkui/dist/components/Separator/Separator';
-import Icon28AddOutline from '@vkontakte/icons/dist/28/add_outline';
-import UsersStack from '@vkontakte/vkui/dist/components/UsersStack/UsersStack';
-import Icon16Done from '@vkontakte/icons/dist/16/done';
-import Icon16Cancel from '@vkontakte/icons/dist/16/cancel';
-import Icon24Send from '@vkontakte/icons/dist/24/send';
 import Snackbar from '@vkontakte/vkui/dist/components/Snackbar/Snackbar';
 import Gallery from '@vkontakte/vkui/dist/components/Gallery/Gallery';
+import Alert from '@vkontakte/vkui/dist/components/Alert/Alert';
+import UsersStack from '@vkontakte/vkui/dist/components/UsersStack/UsersStack';
+
+import Icon28MessageOutline from '@vkontakte/icons/dist/28/message_outline';
+import Icon28PlaceOutline from '@vkontakte/icons/dist/28/place_outline';
+import Icon28AddOutline from '@vkontakte/icons/dist/28/add_outline';
+import Icon24Cancel from '@vkontakte/icons/dist/24/cancel';
+import Icon24Send from '@vkontakte/icons/dist/24/send';
+import Icon16Done from '@vkontakte/icons/dist/16/done';
+import Icon16Cancel from '@vkontakte/icons/dist/16/cancel';
 
 import '@vkontakte/vkui/dist/vkui.css';
 import './panels/stylesheets.css';
@@ -65,7 +64,7 @@ function getDiffTime(start) {
 	let diff = end - start;
 	let hours = Math.floor((diff % 86400000) / 3600000);
 	let minutes = Math.round(((diff % 86400000) % 3600000) / 60000);
-	return hours == 0 ? minutes + 'м. назад' : hours + 'ч. ' + minutes + 'м. назад';
+	return hours === 0 ? minutes + 'м. назад' : hours + 'ч. ' + minutes + 'м. назад';
 }
 
 const App = () => {
@@ -74,27 +73,29 @@ const App = () => {
 		'dtp': 'Дорожно-транспортное происшествие',
 		'sos': 'Просьба о помощи',
 	}
-	const MODAL_CARD_ADD_MARKER_DPS = 'addCardMarkerDps';
-	const MODAL_CARD_ADD_MARKER_DTP = 'addCardMarkerDtp';
-	const MODAL_CARD_ADD_MARKER_SOS = 'addCardMarkerSos';
 	const infoCards = {
 		'dps': 'infoCardMarkerDps',
 		'dtp': 'infoCardMarkerDtp',
 		'sos': 'infoCardMarkerSos'
 	}
+	const MODAL_CARD_ADD_MARKER_DPS = 'addCardMarkerDps';
+	const MODAL_CARD_ADD_MARKER_DTP = 'addCardMarkerDtp';
+	const MODAL_CARD_ADD_MARKER_SOS = 'addCardMarkerSos';
 	const MODAL_PAGE_MARKER_SELECT = 'selectMarkerType';
 	const [fetchedUser, setUser] = useState(null);
+	const [popout, setPopout] = useState(<ScreenSpinner size='large' name='ScreenSpinner'/>);
+	const [modal, setModal] = useState(null);
+	const [snackbar, setSnackbar] = useState(null);
+
 	const [markerDescription, setMarkerDescription] = useState('');
 	const [activeStory, setActiveStory] = useState('mapPanel');
-	const [popout, setPopout] = useState(<ScreenSpinner size='large' />);
-	const [modal, setModal] = useState(null);
 	const [activeType, setActiveType] = useState('dps');
 	const [activeRows, setActiveRows] = useState('');
 	const [clickedMarker, setClickedMarker] = useState(null);
 	const [activeDescription, setActiveDescription] = useState(descriptions[activeType]);
-	const [snackbar, setSnackbar] = useState(null);
-	const [timer, setTimer] = useState(Date.now()-60000);
 	const [newComment, setNewComment] = useState('');
+
+	const [timer, setTimer] = useState(Date.now()-60000);
 	
 
 	useEffect(() => {
@@ -112,6 +113,28 @@ const App = () => {
 		}
 		fetchData();
 	}, []);
+
+	function setNewSnackbar(message, duration, success = false) {
+		setSnackbar (
+			<Snackbar
+			layout="horizontal"
+			duration={duration}
+			onClose={() => {
+					setSnackbar(null);
+			}}
+			before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}>{
+				success 
+				? 
+				<Icon16Done fill="#fff" width={14} height={14} />
+				: 
+				<Icon16Cancel fill="#fff" width={14} height={14} />
+				}
+				</Avatar>}
+			>
+			{message}
+			</Snackbar>
+		);
+	}
 
 	const onStoryChange = e => {
 		setActiveStory(e.currentTarget.dataset.story);
@@ -168,8 +191,8 @@ const App = () => {
 			}
 			let response = false;
 			try {
-				setPopout(<ScreenSpinner />);
-				response = await fetch("https://vk-miniapps-where-is-dps.herokuapp.com/addmarker", {
+				setPopout(<ScreenSpinner name='ScreenSpinner'/>);
+				response = await fetch("https://51.178.18.239:3010/addmarker", {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
@@ -178,69 +201,28 @@ const App = () => {
 				});
 				setTimer(Date.now());
 			} catch(e) {
-				setSnackbar(
-					<Snackbar
-					layout="horizontal"
-					duration={2000}
-					onClose={() => {
-							setSnackbar(null);
-					}}
-					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-					>
-					Сервер недоступен.
-					</Snackbar>
-				);
+				setNewSnackbar('Сервер недоступен.', 5000);
 			}
 			if (!response) {
-				setSnackbar(
-					<Snackbar
-					layout="horizontal"
-					duration={2000}
-					onClose={() => {
-							setSnackbar(null);
-					}}
-					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-					>
-					Возникла серверная ошибка.
-					</Snackbar>
-				);
+				setNewSnackbar('Упс... Возникла серверная ошибка.', 2000);
 			}
 		} else {
-			setSnackbar(
-				<Snackbar
-				layout="horizontal"
-				duration={5000}
-				onClose={() => {
-						setSnackbar(null);
-				}}
-				before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-				>
-				Вам нужно подождать 20 cекунд, прежде чем вы сможете поставить метку.<br/><br/>Спасибо за понимание.
-				</Snackbar>
-			);
+			setNewSnackbar('Вам нужно подождать 20 cекунд, прежде чем вы сможете поставить метку./n/nСпасибо за понимание.', 3000);
 		}
 	}
 
 	async function updateMarkers() {
 		try {
-			let response = await fetch('https://vk-miniapps-where-is-dps.herokuapp.com/getmarkers');
+			let response = await fetch('https://51.178.18.239:3010/getmarkers');
 			let json = await response.json();
 			let markers = await json;
-			setPopout(null);
+			console.log(popout);
+			if (popout && popout.props.name === 'ScreenSpinner') {
+				setPopout(null);
+			}
 			return markers;
 		} catch(e) {
-			setSnackbar(
-				<Snackbar
-				layout="horizontal"
-				duration={5000}
-				onClose={() => {
-						setSnackbar(null);
-				}}
-				before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-				>
-				Сервер недоступен.
-				</Snackbar>
-			);
+			setNewSnackbar('Сервер недоступен.', 5000);
 			return [];
 		}
 	}
@@ -249,8 +231,8 @@ const App = () => {
 		if (clickedMarker) {
 			let response = false;
 			try {
-				setPopout(<ScreenSpinner />);
-				response = await fetch("https://vk-miniapps-where-is-dps.herokuapp.com/removemarker", {
+				setPopout(<ScreenSpinner name='ScreenSpinner'/>);
+				response = await fetch("https://51.178.18.239:3010/removemarker", {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
@@ -260,32 +242,10 @@ const App = () => {
 					})
 				});
 			} catch(e) {
-				setSnackbar(
-					<Snackbar
-					layout="horizontal"
-					duration={20000}
-					onClose={() => {
-							setSnackbar(null);
-					}}
-					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-					>
-					Сервер недоступен.
-					</Snackbar>
-				);
+				setNewSnackbar('Сервер недоступен.', 5000);
 			}
 			if (!response) {
-				setSnackbar(
-					<Snackbar
-					layout="horizontal"
-					duration={20000}
-					onClose={() => {
-							setSnackbar(null);
-					}}
-					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-					>
-					Возникла серверная ошибка.
-					</Snackbar>
-				);
+				setNewSnackbar('Упс... Возникла серверная ошибка.', 2000);
 			}
 		}
 	}
@@ -294,8 +254,8 @@ const App = () => {
 		if (newComment !== '' && clickedMarker) {
 			let response = false;
 			try {
-				setPopout(<ScreenSpinner />);
-				response = await fetch("https://vk-miniapps-where-is-dps.herokuapp.com/addmarkercomment", {
+				setPopout(<ScreenSpinner name='ScreenSpinner'/>);
+				response = await fetch("https://51.178.18.239:3010/addmarkercomment", {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
@@ -310,45 +270,13 @@ const App = () => {
 					})
 				});
 			} catch(e) {
-				setSnackbar(
-					<Snackbar
-					layout="horizontal"
-					duration={20000}
-					onClose={() => {
-							setSnackbar(null);
-					}}
-					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-					>
-					Сервер недоступен.
-					</Snackbar>
-				);
+				setNewSnackbar('Сервер недоступен.', 5000);
 			}
 			if (!response) {
-				setSnackbar(
-					<Snackbar
-					layout="horizontal"
-					duration={20000}
-					onClose={() => {
-							setSnackbar(null);
-					}}
-					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-					>
-					Возникла серверная ошибка.
-					</Snackbar>
-				);
+				setNewSnackbar('Упс... Возникла серверная ошибка.', 2000);
 			}
 		} else {
-			setSnackbar(
-				<Snackbar
-				layout="horizontal"
-				duration={20000}
-				onClose={() => {
-						setSnackbar(null);
-				}}
-				before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-				>
-				Пустой комментарий отправлен не будет.
-				</Snackbar>);
+			setNewSnackbar('Пустой комментарий отправлен не будет.', 2000);
 		}
 	}
 
@@ -358,8 +286,9 @@ const App = () => {
 				if (isTimeOut(5)) {
 					let response = false;
 					try {
-						setPopout(<ScreenSpinner />);
-						response = await fetch("https://vk-miniapps-where-is-dps.herokuapp.com/confirmmarker", {
+						setPopout(<ScreenSpinner name='ScreenSpinner'/>);
+						setTimer(Date.now());
+						response = await fetch("https://51.178.18.239:3010/confirmmarker", {
 							method: 'POST',
 							headers: {
 								'Content-Type': 'application/json'
@@ -373,20 +302,8 @@ const App = () => {
 								}
 							})
 						});
-						setTimer(Date.now());
 					} catch(e) {
-						setSnackbar(
-							<Snackbar
-							layout="horizontal"
-							duration={20000}
-							onClose={() => {
-									setSnackbar(null);
-							}}
-							before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-							>
-							Сервер недоступен.
-							</Snackbar>
-						);
+						setNewSnackbar('Сервер недоступен.', 5000);
 					}
 					if (!response) {
 						setSnackbar(
@@ -402,6 +319,7 @@ const App = () => {
 							</Snackbar>
 						);
 					} else {
+						setNewSnackbar('Сервер недоступен.', 1000, true);
 						setSnackbar(
 							<Snackbar
 							layout="horizontal"
@@ -416,33 +334,11 @@ const App = () => {
 						);
 					}
 				} else {
-					setSnackbar(
-						<Snackbar
-						layout="horizontal"
-						duration={5000}
-						onClose={() => {
-								setSnackbar(null);
-						}}
-						before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-						>
-						Вам нужно подождать несколько секунд, прежде чем вы сможете подтвердить еще одну метку.<br/><br/>Спасибо за понимание.
-						</Snackbar>
-					);
+					setNewSnackbar('Вам нужно подождать несколько секунд, прежде чем вы сможете подтвердить еще одну метку./n/nСпасибо за понимание.', 3000);
 				}
 			}
 			else {
-				setSnackbar(
-					<Snackbar
-					layout="horizontal"
-					duration={2000}
-					onClose={() => {
-							setSnackbar(null);
-					}}
-					before={<Avatar size={24} style={{backgroundColor: 'var(--accent)'}}><Icon16Cancel fill="#fff" width={14} height={14} /></Avatar>}
-					>
-					Вы не можете подтвердить этот маркер.
-					</Snackbar>
-				);
+				setNewSnackbar('Вы не можете подтвердить этот маркер.', 2000);
 			}
 		}
 	}
@@ -468,11 +364,11 @@ const App = () => {
 	}
 
 	function includesId() {
-		if(clickedMarker.userId === fetchedUser.id) {
+		if(clickedMarker.userId === fetchedUser.id || clickedMarker) {
 			return true;
 		}
-		for(let i = 0; i < clickedMarker.confirmed.length; i++) {
-			if(clickedMarker.confirmed[i].userId === fetchedUser.id) {
+		for(const confirmed of clickedMarker.confirmed) {
+			if(confirmed.userId === fetchedUser.id) {
 				return true;
 			}	
 		}
@@ -492,6 +388,33 @@ const App = () => {
 			return [photoArr, firstNameArr, userIdArr];
 		}
 		return null;
+	}
+
+	function changePopoutState(isPopoutNeed) {
+		setPopout(isPopoutNeed ? <ScreenSpinner size='large' name='ScreenSpinner'/> : null);
+	}
+
+	function openAlertDelete() {
+		setPopout(
+			<Alert
+				actionsLayout="horizontal"
+				actions={[{
+					title: 'Удалить',
+					mode: 'destructive',
+					action: () => removeMarker()
+				}, {
+					title: 'Отменить',
+					mode: 'cancel',
+					action: () => setPopout(null)
+				}]}
+				onClose={() => {
+					setPopout(null);
+				}}
+				>
+				<h2>Подтвердите действие</h2>
+				<p>Вы уверены, что хотите удалить маркер?</p>
+			</Alert>
+		  );
 	}
 
 	let modalRoot = (
@@ -560,9 +483,9 @@ const App = () => {
 					<FormLayoutGroup id='buttons'>
 						<Cell id='modalButtons' asideContent=''>
 							<Button mode="primary" onClick={() => {
-								{if (activeType === 'dps') setModal(MODAL_CARD_ADD_MARKER_DPS);
-								else if (activeType === 'dtp') setModal(MODAL_CARD_ADD_MARKER_DTP);
-								else setModal(MODAL_CARD_ADD_MARKER_SOS);}
+									if (activeType === 'dps') setModal(MODAL_CARD_ADD_MARKER_DPS);
+									else if (activeType === 'dtp') setModal(MODAL_CARD_ADD_MARKER_DTP);
+									else setModal(MODAL_CARD_ADD_MARKER_SOS);
 								}} size="xl" stretched>Далее</Button>
 						</Cell>
 					</FormLayoutGroup>
@@ -705,22 +628,7 @@ const App = () => {
 				onClose={() => {
 					setModal(null);
 					}}
-				header={'ДТП'}
-				actions={[
-					{
-					title: 'Закрыть',
-					mode: 'secondary',
-					action: () => {
-						setModal(null);
-					}},
-					{
-					title: 'Подтвердить',
-					mode: 'primary',
-					action: () => {
-						confirmMarker();
-						setModal(null);
-					}}
-				]}>
+				header={'ДТП'}>
 				{!clickedMarker ||
 						<Div className='cardInfo'>
 							{!divideConfirmed() || 
@@ -734,7 +642,7 @@ const App = () => {
 										? (divideConfirmed()[0].length === 2 
 										? `${divideConfirmed()[1][0]} и ${divideConfirmed()[1][1]} подтвердили.`
 										: `${divideConfirmed()[1][0]}, ${divideConfirmed()[1][1]} и еще ${divideConfirmed()[0].length - 2} подтвердили.`)
-										: (divideConfirmed()[1].length == 0 ? 'Пока не подтвердил ни один человек.' : `${divideConfirmed()[1][0]} подтвердил.`)
+										: (divideConfirmed()[1].length === 0 ? 'Пока не подтвердил ни один человек.' : `${divideConfirmed()[1][0]} подтвердил.`)
 											}
 									</UsersStack>
 								</Div>
@@ -775,13 +683,36 @@ const App = () => {
 								<Div className='commentInputDiv'>
 									<Input className='commentInput' type="text" placeholder='Введите комментарий' maxLength="64" onChange={commentChange}/>
 									<Button mode='secondary' className='commentButton' onClick={() => {
-										addNewMarkerComment();
 										setModal(null);
+										addNewMarkerComment();
 										}}>
 										<Icon24Send/>
 									</Button>
 								</Div>
 							</Group>
+							<Div className='cardButtons'>
+								<Button mode='secondary' size='xl' id='removeButton' onClick={() => {
+									setModal(null);
+									}}>
+									Закрыть
+								</Button>
+								{clickedMarker.userId !== fetchedUser.id 
+								?
+									<Button className='primaryButton' mode='primary' size='xl' onClick={() => {	
+											setModal(null);				
+											confirmMarker();
+										}}>
+										Подтвердить
+									</Button>
+								: 
+									<Button className='primaryButton' mode='primary' size='xl' onClick={() => {		
+											setModal(null);
+											openAlertDelete();
+										}}>
+										Удалить
+									</Button>
+								}
+							</Div>
 						</Div>
 				}
 			</ModalCard>
@@ -790,22 +721,7 @@ const App = () => {
 				onClose={() => {
 					setModal(null);
 					}}
-				header={'ДПС'}
-				actions={[
-					{
-					title: 'Закрыть',
-					mode: 'secondary',
-					action: () => {
-						setModal(null);
-					}},
-					{
-					title: 'Подтвердить',
-					mode: 'primary',
-					action: () => {
-						confirmMarker();
-						setModal(null);
-					}}
-				]}>
+				header={'ДПС'}>
 				{!clickedMarker ||
 						<Div className='cardInfo'>
 						{!divideConfirmed() || 
@@ -819,7 +735,7 @@ const App = () => {
 										? (divideConfirmed()[0].length === 2 
 										? `${divideConfirmed()[1][0]}, ${divideConfirmed()[1][1]} подтвердили.`
 										: `${divideConfirmed()[1][0]}, ${divideConfirmed()[1][1]} и еще ${divideConfirmed()[0].length - 2} подтвердили.`)
-										: (divideConfirmed()[1].length == 0 ? 'Пока не подтвердил ни один человек.' : `${divideConfirmed()[1][0]} подтвердил.`)
+										: (divideConfirmed()[1].length === 0 ? 'Пока не подтвердил ни один человек.' : `${divideConfirmed()[1][0]} подтвердил.`)
 											}
 									</UsersStack>
 								</Div>
@@ -860,13 +776,38 @@ const App = () => {
 								<Div className='commentInputDiv'>
 									<Input className='commentInput' type="text" placeholder='Введите комментарий' maxLength="64" onChange={commentChange}/>
 									<Button mode='secondary' className='commentButton' onClick={() => {
-										addNewMarkerComment();
 										setModal(null);
+										addNewMarkerComment();
 										}}>
 										<Icon24Send/>
 									</Button>
 								</Div>
 							</Group>
+							<Div className='cardButtons'>
+								<Button mode='secondary' size='xl' id='removeButton' onClick={() => {
+									setModal(null);
+									}}>
+									Закрыть
+								</Button>
+								{clickedMarker.userId !== fetchedUser.id 
+								?
+									includesId()
+									|| <Button className='primaryButton' mode='primary' size='xl' onClick={() => {	
+											setModal(null);				
+											confirmMarker();
+										}}>
+										Подтвердить
+									</Button>
+									
+								: 
+									<Button className='primaryButton' mode='primary' size='xl' onClick={() => {						
+											setModal(null);
+											openAlertDelete();
+										}}>
+										Удалить
+									</Button>
+								}
+							</Div>
 						</Div>
 				}
 			</ModalCard>
@@ -875,14 +816,7 @@ const App = () => {
 				onClose={() => {
 					setModal(null);
 					}}
-				header={'Нужна помощь'}
-				actions={[
-					{
-					title: 'Закрыть',
-					mode: 'secondary',
-					action: () => {
-						setModal(null);
-					}}]}>
+				header={'Нужна помощь'}>
 					{!clickedMarker ||
 						<Div className='card'>
 							<Div className='cardInfo'>
@@ -930,16 +864,21 @@ const App = () => {
 									</Button>
 								</Div>
 							</Group>
-							{clickedMarker.userId !== fetchedUser.id ||
-								<Group className='removeButtonDiv'
-									separator="hide">
-									<Button mode='primary' size='xl' id='removeButton' onClick={() => {
-										removeMarker();
-										setModal(null);
+							<Div className='cardButtons'>
+								<Button mode='secondary' size='xl' id='removeButton' onClick={() => {
+									setModal(null);
+									}}>
+									Закрыть
+								</Button>
+								{clickedMarker.userId !== fetchedUser.id ||
+									<Button className='primaryButton' mode='primary' size='xl' onClick={() => {						
+											openAlertDelete();
+											setModal(null);
 										}}>
 										Удалить
 									</Button>
-								</Group>}
+								}
+							</Div>
 						</Div>
 				}
 			</ModalCard>
@@ -950,37 +889,36 @@ const App = () => {
 		<Epic activeStory={activeStory} tabbar={
 			<Tabbar>
 				{snackbar}
-			  <TabbarItem
+			<TabbarItem
 				onClick={onStoryChange}
 				selected={activeStory === 'chatPanel'}
 				data-story="chatPanel"
 				text="Канал"
-			  ><Icon28MessageOutline /></TabbarItem>
-			  <TabbarItem
+			><Icon28MessageOutline /></TabbarItem>
+			<TabbarItem
 				onClick={onStoryChange}
 				selected={activeStory === 'mapPanel'}
 				data-story="mapPanel"
 				text="Карта"
-			  ><Icon28PlaceOutline /></TabbarItem>
-			   {/* {<TabbarItem
+			><Icon28PlaceOutline /></TabbarItem>
+			{/* {<TabbarItem
 				onClick={onStoryChange}
 				selected={activeStory === 'configPanel'}
 				data-story="configPanel"
 				text="Настройки"
-			  ><Icon28SettingsOutline /></TabbarItem>} */}
+			><Icon28SettingsOutline /></TabbarItem>} */}
 			</Tabbar>
-		  }>
-			<View id="chatPanel" activePanel="chatPanel">
-				<Chat id="chatPanel" fetchedUser={fetchedUser}/>
+		}>
+			<View id="chatPanel" activePanel="chatPanel" popout={popout}>
+				<Chat id="chatPanel" fetchedUser={fetchedUser} changePopoutState={changePopoutState} setNewSnackbar={setNewSnackbar}/>
 			</View>
 			<View id="mapPanel" activePanel="mapPanel" popout={popout} modal={modalRoot}>
-			 	<Map id="mapPanel" onSetMarker={onSetMarker} updateMarkersOnMap={updateMarkers} onClickMarker={onClickMarker}/>
+				<Map id="mapPanel" onSetMarker={onSetMarker} updateMarkersOnMap={updateMarkers} onClickMarker={onClickMarker}/>
 			</View>
 			{/* {<View id="configPanel" activePanel="configPanel">
 				<Config id="configPanel"/>
 			</View>} */}
-			
-		  </Epic>
+		</Epic>
 	);
 }
 
