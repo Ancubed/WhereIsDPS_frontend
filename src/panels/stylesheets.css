@@ -21,36 +21,36 @@ body[scheme="space_gray"] {
   --buttonScrollDownBackground: #2C2D2F;
   --buttonScrollDownShadow: #2C2D2F;
 }
-.panel {
+.panel, #map, #modalDiv, #rowTabs, .commentDescription, .popupHeader, #app, #firstScreen, .markerDescription, 
+.markerCommentCell, .commentsDiv, .commentCell, .commentInfo,
+.commentOwnerCell, .commentOwner, .commentUserName, .commentOwner, 
+.commentInput, .markerCommentsHeader, .markerOwner, .markerOwnerCell, 
+.counter, .userStack, .markerInfo, .removeButtonDiv, #removeButton, .card, 
+.cardInfo, #chat, #chatCityDiv, #chatMessagesDiv, #chatMessageSendDiv,
+.messageOwnerLink, .messageOwner, .messageUserName, .messageText, 
+.messageOwnerCell, .messageContent, .myMessageDate, .myMessageDateDiv, #chatMessagesDivCont, 
+#cityList, .Search--ios, .Search, .cardButtons {
   padding: 0px;
   margin: 0px;
+}
+.panel {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   border: 1 px solid black;
 }
 #map {
-  margin: 0px;
-  padding: 0px;
   width: 100vw;
   height: var(--mapHeight);
   position: fixed;
   overflow: hidden;
 }
-#modalDiv {
-  margin-top: 0px;
-  padding: 0px;
-}
 #rowTabs {
-  padding: 0px;
-  margin: 0px;
   display: flex;
   flex-direction: row;
   background-color: var(--rowTabsColor);
 }
 .popupHeader {
-  margin: 0px;
-  padding: 0px;
   display: flex;
   justify-content: center;
 }
@@ -65,21 +65,6 @@ body[scheme="space_gray"] {
 }
 .userName {
   padding: 0px 0px 0px 15px;
-}
-#app, #firstScreen, .markerDescription, .markerCommentCell, .commentsDiv, .commentCell, .commentInfo,
-.commentOwnerCell, .commentOwner, .commentUserName, .commentOwner, 
-.commentInput, .markerCommentsHeader, .markerOwner, .markerOwnerCell, 
-.counter, .userStack, .markerInfo, .removeButtonDiv, #removeButton, .card, 
-.cardInfo, #chat, #chatCityDiv, #chatMessagesDiv, #chatMessageSendDiv,
-.messageOwnerLink, .messageOwner, .messageUserName, .messageText, 
-.messageOwnerCell, .messageContent, .myMessageDate, .myMessageDateDiv, #chatMessagesDivCont, 
-#cityList, .Search--ios, .Search, .cardButtons {
-  padding: 0px;
-  margin: 0px;
-}
-.commentDescription {
-  padding: 0px 12px;
-  margin: 0px;
 }
 .commentInputDiv {
   padding: 0px;
@@ -138,7 +123,7 @@ body[scheme="space_gray"] {
   display: flex;
   justify-content: center;
 }
-#chatMessageSendDiv {
+#chatMessageSendDiv, #chatMessageSendDivLimit {
   box-sizing: border-box;
   padding: 0px 22px 5px 22px;
   margin: 0px 0px 0px 0px;
@@ -152,7 +137,11 @@ body[scheme="space_gray"] {
   align-items: center;
   flex-flow: nowrap;
   background-color: var(--chatSendMessageColor);
-  z-index: 10;
+}
+#chatMessageSendDivLimit {
+  height: auto;
+  text-align: center;
+  justify-content: center;
 }
 #chatCityDiv {
   box-sizing: border-box;
@@ -166,7 +155,8 @@ body[scheme="space_gray"] {
   overflow-y: scroll;
 }
 #chatMessagesDiv {
-  padding: 5px 10px 115px 10px;
+  padding: 5px 10px 0px 10px;
+  margin-bottom: 120px;
 }
 #chatMessageInput {
   width: 100%;
@@ -225,7 +215,7 @@ body[scheme="space_gray"] {
   height: 100%;
   text-align: center;
   justify-content: center;
-  padding: 220px 10px 118px 10px;
+  padding: 220px 10px 0px 10px;
 }
 .secondaryText {
   color: #818C99;
@@ -243,7 +233,7 @@ body[scheme="space_gray"] {
   box-shadow: 0px 0px 1px 0px var(--buttonScrollDownShadow);
 }
 #cityList {
-  margin: 15px 0px 80px 0px;
+  margin: 15px 0px 85px 0px;
   height: 100%; 
 }
 .cityCellButton {
@@ -256,4 +246,73 @@ body[scheme="space_gray"] {
 }
 #panelHeader {
   z-index: 11;
+}
+#firstTimePanel {
+  box-sizing: border-box;
+  padding: 0px 12px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: scroll;
+}
+#headerFirstTimePanel {
+  width: 100%;
+  font-size: 48;
+  text-align: center;
+  margin: 10px 5px;
+}
+#subheadFirstTimePanel {
+  width: 100%;
+  font-weight: normal;
+  margin: 5px 0px 20px 0px;
+  word-wrap: wrap;
+  text-align: center;
+}
+.textBlockHeader {
+  margin: 5px 0px;
+}
+.descElemFirstTimePanel {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.termsSubhead {
+  margin: 5px;
+  width: 100%;
+  font-weight: normal;
+  text-align: center;
+}
+.tsbold {
+  font-weight: bold;
+}
+#terms {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 10px;
+}
+#termsSubheadDiv {
+  display: flex;
+  flex-direction: column;
+}
+#emptyCityList {
+  font-size: 24px;
+}
+#cityListEmptyDiv {
+  height: 150px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+#cityListEmptyText {
+  font-size: 18px;
+  width: 100%;
+  font-weight: normal;
+  text-align: center;
+}
+#firstTimePanelV {
+  z-index: 999999;
 }

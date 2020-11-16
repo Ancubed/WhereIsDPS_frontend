@@ -44,10 +44,13 @@ import './panels/stylesheets.css';
 import Map from './panels/Map';
 import Chat from './panels/Chat';
 import Config from './panels/Config';
+import FirstTimePanel from './panels/FirstTimePanel';
 
 import dps from './img/dps.svg';
 import dtp from './img/dtp.svg';
 import sos from './img/sos.svg';
+
+var marker = null;
 
 String.prototype.replaceAt = function(index, replacement) {
 	return this.substr(0, index) + replacement + this.substr(index + replacement.length);
@@ -57,14 +60,130 @@ String.prototype.firstLetterCaps = function() {
     return this.charAt(0).toUpperCase() + this.slice(1);
 }
 
-var marker = null;
-
 function getDiffTime(start) {
 	let end = new Date;
 	let diff = end - start;
 	let hours = Math.floor((diff % 86400000) / 3600000);
 	let minutes = Math.round(((diff % 86400000) % 3600000) / 60000);
 	return hours === 0 ? minutes + 'м. назад' : hours + 'ч. ' + minutes + 'м. назад';
+}
+
+function isStringEmpty(string) {
+	string = string.trim();
+	if (string.length > 0) {
+		return false;
+	} else {
+		return true;
+	}
+}
+
+function Comment(props) {
+	let comment = props.comment;
+	return (
+	<Div size="m" className='commentCell'>
+		<Group className='commentInfo'
+		separator='hide'
+		description={comment.comment}>
+			<Cell className='commentOwnerCell' asideContent={<Text>{getDiffTime(comment.datetime)}</Text>}>
+				<Link href={`https://vk.com/id${comment.userId}`} target='_blank'>
+					<Div className='commentOwner'>
+						<Div className='commentUserName'>
+							<Title level='3' weight="medium" style={{margin: 0, padding: 0 }}>{comment.firstName}</Title>
+						</Div>
+					</Div>
+				</Link>
+			</Cell>
+		</Group>
+	</Div>);
+}
+
+class MessageSend extends React.Component {
+	constructor (props) {
+		  super(props);
+		this.sendMessage = this.sendMessage.bind(this);
+		this.messageChange = this.messageChange.bind(this);
+		this.buttonSendMessageRender = this.buttonSendMessageRender.bind(this);
+		this.state = {
+			message: ''
+		}
+		this.messageNotState='';
+		this.sendsMessagesLimit = 30;
+	}
+
+	messageChange(e) {
+		this.setState({
+			message:  e.target.value
+		});
+		this.messageNotState = e.target.value;
+		this.buttonSendMessageRender();
+	}
+
+	buttonSendMessageRender() {
+		let isNeedRender = !isStringEmpty(this.messageNotState);
+		let buttonSendMessage = document.getElementById('messageSendButton')
+		try {
+			isNeedRender ? buttonSendMessage.style.display = 'block' : buttonSendMessage.style.display = 'none';
+		} catch (e) {
+			console.log(e)
+		}
+	}
+
+	async sendMessage() {
+		let trimmedMessage = this.state.message.replace(/\s+/g, ' ').trim();
+		if (this.state.message.length > 0) {
+			if (this.props.sendsMessagesCount < this.sendsMessagesLimit) {
+				let messageInfo = {
+					userId: this.props.fetchedUser.id,
+					cityId: this.props.cityId,
+					firstName: this.props.fetchedUser.first_name,
+					lastName: this.props.fetchedUser.last_name,
+					photo: this.props.fetchedUser.photo_100,
+					message: trimmedMessage,
+					sign: window.location.search.slice(1, window.location.search.length)
+				}
+				let response = false;
+				try {
+					response = await fetch("https://brainrtp.me:8443/addmessage", {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(messageInfo)
+					});
+					if (response) {
+						this.setState({
+							message:  ''
+						});
+						let newCount = this.props.sendsMessagesCount + 1;
+						this.props.setSendsMessagesCount(newCount);
+						if (newCount === this.sendsMessagesLimit-1) this.props.setSendsMessagesLimitTimer(setTimeout(() => this.props.setSendsMessagesCount(0), 30000));
+					}
+				} catch(e) {
+					console.log('err in send messages');
+				}
+				if (!response) {
+					console.log('res return false');
+				}
+			} else {
+				this.props.setNewSnackbar('Вы отправили слишком много сообщений.\nПодождите 30 секунд, прежде чем отправить еще одно.', 5000);
+			}
+		}
+	}
+
+	render () {
+		return (
+			<Div id='chatMessageSendDiv'>
+				<Input id='chatMessageInput' autoComplete='off' type="text" maxLength='256' value={this.state.message} placeholder='Введите сообщение' maxLength="256" onChange={this.messageChange}/>
+				<Button mode='secondary' id='messageSendButton' onClick={() => {
+						this.messageNotState = '';
+						this.buttonSendMessageRender();	
+						this.sendMessage();
+					}}>
+					<Icon24Send/>
+				</Button>
+			</Div>
+		)
+	}
 }
 
 const App = () => {
@@ -87,16 +206,23 @@ const App = () => {
 	const [modal, setModal] = useState(null);
 	const [snackbar, setSnackbar] = useState(null);
 
+	const [isFirstTime, setFirstTime] = useState(true);
+
 	const [markerDescription, setMarkerDescription] = useState('');
-	const [activeStory, setActiveStory] = useState('mapPanel');
+	const [activeStory, setActiveStory] = useState(localStorage.getItem('isNotFirstTime') ? 'mapPanel' : 'firstTimePanel');
 	const [activeType, setActiveType] = useState('dps');
 	const [activeRows, setActiveRows] = useState('');
 	const [clickedMarker, setClickedMarker] = useState(null);
 	const [activeDescription, setActiveDescription] = useState(descriptions[activeType]);
 	const [newComment, setNewComment] = useState('');
 
+	const [city, setCity] = useState({id: localStorage.getItem('cityId') || '605', name: localStorage.getItem('cityName') || 'Москва, Московская область'});
+	const [isCityDivClosed, setCityDivClosed] = useState(true);
+
 	const [timer, setTimer] = useState(Date.now()-60000);
-	
+
+	const [sendsMessagesCount, setSendsMessagesCount] = useState(0);
+	const [sendsMessagesLimitTimer, setSendsMessagesLimitTimer] = useState(null);
 
 	useEffect(() => {
 		bridge.subscribe(({ detail: { type, data }}) => {
@@ -112,6 +238,12 @@ const App = () => {
 			setPopout(null);
 		}
 		fetchData();
+		localStorage.setItem('isNotFirstTime', true);
+
+		return () => {
+			setSendsMessagesCount(0);
+			setSendsMessagesLimitTimer(null);
+		};
 	}, []);
 
 	function setNewSnackbar(message, duration, success = false) {
@@ -164,8 +296,13 @@ const App = () => {
 	}
 
 	function onClickMarker(markerInfo) {
-		setClickedMarker(markerInfo);
-		setModal(infoCards[markerInfo.type]);
+		try {
+			setClickedMarker(markerInfo);
+			setModal(infoCards[markerInfo.type]);
+		} catch (e) {
+			console.log(e);
+			setModal(null);
+		}
 	}
 
 	function isTimeOut(needSec) {
@@ -184,7 +321,8 @@ const App = () => {
 				photo: fetchedUser.photo_100,
 				data: marker._latlng,
 				markerDescription: markerDescription,
-				comments: []
+				comments: [],
+				sign: window.location.search.slice(1, window.location.search.length)
 			}
 			if (activeType === 'dps' || activeType === 'dtp') {
 				markerInfo.confirmed = [];
@@ -192,7 +330,7 @@ const App = () => {
 			let response = false;
 			try {
 				setPopout(<ScreenSpinner name='ScreenSpinner'/>);
-				response = await fetch("https://51.178.18.239:3010/addmarker", {
+				response = await fetch("https://brainrtp.me:8443/addmarker", {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
@@ -207,16 +345,15 @@ const App = () => {
 				setNewSnackbar('Упс... Возникла серверная ошибка.', 2000);
 			}
 		} else {
-			setNewSnackbar('Вам нужно подождать 20 cекунд, прежде чем вы сможете поставить метку./n/nСпасибо за понимание.', 3000);
+			setNewSnackbar(`Вам нужно подождать 20 cекунд, прежде чем вы сможете поставить метку.\n\nСпасибо за понимание.`, 4500);
 		}
 	}
 
 	async function updateMarkers() {
 		try {
-			let response = await fetch('https://51.178.18.239:3010/getmarkers');
+			let response = await fetch(`https://brainrtp.me:8443/getmarkers${window.location.search}`);
 			let json = await response.json();
 			let markers = await json;
-			console.log(popout);
 			if (popout && popout.props.name === 'ScreenSpinner') {
 				setPopout(null);
 			}
@@ -232,13 +369,14 @@ const App = () => {
 			let response = false;
 			try {
 				setPopout(<ScreenSpinner name='ScreenSpinner'/>);
-				response = await fetch("https://51.178.18.239:3010/removemarker", {
+				response = await fetch("https://brainrtp.me:8443/removemarker", {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
 					},
 					body: JSON.stringify({
-						idToConfirm: clickedMarker._id
+						idToConfirm: clickedMarker._id,
+						sign: window.location.search.slice(1, window.location.search.length)
 					})
 				});
 			} catch(e) {
@@ -255,7 +393,7 @@ const App = () => {
 			let response = false;
 			try {
 				setPopout(<ScreenSpinner name='ScreenSpinner'/>);
-				response = await fetch("https://51.178.18.239:3010/addmarkercomment", {
+				response = await fetch("https://brainrtp.me:8443/addmarkercomment", {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
@@ -266,7 +404,8 @@ const App = () => {
 							userId: fetchedUser.id,
 							firstName: fetchedUser.first_name,
 							comment: newComment
-						}
+						},
+						sign: window.location.search.slice(1, window.location.search.length)
 					})
 				});
 			} catch(e) {
@@ -280,6 +419,20 @@ const App = () => {
 		}
 	}
 
+	function includesId() {
+		if(clickedMarker.userId === fetchedUser.id) {
+			return true;
+		}
+		if (clickedMarker.confirmed) {
+			for(const confirmed of clickedMarker.confirmed) {
+				if(confirmed.userId === fetchedUser.id) {
+					return true;
+				}	
+			}
+		}
+		return false;
+	}
+
 	async function confirmMarker() {
 		if (clickedMarker) {
 			if (!includesId()) {
@@ -288,7 +441,7 @@ const App = () => {
 					try {
 						setPopout(<ScreenSpinner name='ScreenSpinner'/>);
 						setTimer(Date.now());
-						response = await fetch("https://51.178.18.239:3010/confirmmarker", {
+						response = await fetch("https://brainrtp.me:8443/confirmmarker", {
 							method: 'POST',
 							headers: {
 								'Content-Type': 'application/json'
@@ -299,7 +452,8 @@ const App = () => {
 									userId: fetchedUser.id,
 									firstName: fetchedUser.first_name,
 									photo: fetchedUser.photo_100
-								}
+								},
+								sign: window.location.search.slice(1, window.location.search.length)
 							})
 						});
 					} catch(e) {
@@ -334,7 +488,7 @@ const App = () => {
 						);
 					}
 				} else {
-					setNewSnackbar('Вам нужно подождать несколько секунд, прежде чем вы сможете подтвердить еще одну метку./n/nСпасибо за понимание.', 3000);
+					setNewSnackbar(`Вам нужно подождать несколько секунд, прежде чем вы сможете подтвердить еще одну метку.\n\nСпасибо за понимание.`, 4500);
 				}
 			}
 			else {
@@ -361,18 +515,6 @@ const App = () => {
 				setMarkerDescription(markerDescription.replace('. ', ', ').firstLetterCaps() + row + '. ');
 			}
 		} 
-	}
-
-	function includesId() {
-		if(clickedMarker.userId === fetchedUser.id || clickedMarker) {
-			return true;
-		}
-		for(const confirmed of clickedMarker.confirmed) {
-			if(confirmed.userId === fetchedUser.id) {
-				return true;
-			}	
-		}
-		return false;
 	}
 
 	function divideConfirmed() {
@@ -519,7 +661,7 @@ const App = () => {
 					}}
 				]}>
 				<Group id='comment' header={<Header style={{ margin: 0,  paddingLeft: 0 }} mode="secondary">Описание</Header>}>
-					<Textarea onChange={markerDescriptionChange} />
+					<Textarea  maxLength='150' onChange={markerDescriptionChange} />
 				</Group>
 			</ModalCard>
 			<ModalCard
@@ -589,7 +731,7 @@ const App = () => {
 					</Cell>
 				</Group>
 				<Group id='comment' header={<Header style={{ margin: 0,  paddingLeft: 0 }} mode="secondary">Описание</Header>}>
-					<Input type='text' defaultValue={markerDescription} onChange={markerDescriptionChange} />
+					<Input type='text' maxLength='150' defaultValue={markerDescription} onChange={markerDescriptionChange} />
 				</Group>
 			</ModalCard>
 			<ModalCard
@@ -620,7 +762,7 @@ const App = () => {
 					}}
 				]}>
 				<Group id='comment' header={<Header style={{ margin: 0,  paddingLeft: 0 }} mode="secondary">Что случилось</Header>}>
-					<Textarea onChange={markerDescriptionChange} />
+					<Textarea maxLength='150' onChange={markerDescriptionChange} />
 				</Group>
 			</ModalCard>
 			<ModalCard
@@ -681,7 +823,7 @@ const App = () => {
 								</Gallery>
 								}	
 								<Div className='commentInputDiv'>
-									<Input className='commentInput' type="text" placeholder='Введите комментарий' maxLength="64" onChange={commentChange}/>
+									<Input className='commentInput' type="text" placeholder='Введите комментарий' maxLength="50" onChange={commentChange}/>
 									<Button mode='secondary' className='commentButton' onClick={() => {
 										setModal(null);
 										addNewMarkerComment();
@@ -698,6 +840,7 @@ const App = () => {
 								</Button>
 								{clickedMarker.userId !== fetchedUser.id 
 								?
+									includesId() ||
 									<Button className='primaryButton' mode='primary' size='xl' onClick={() => {	
 											setModal(null);				
 											confirmMarker();
@@ -774,7 +917,7 @@ const App = () => {
 								</Gallery>
 								}	
 								<Div className='commentInputDiv'>
-									<Input className='commentInput' type="text" placeholder='Введите комментарий' maxLength="64" onChange={commentChange}/>
+									<Input className='commentInput' type="text" placeholder='Введите комментарий' maxLength="50" onChange={commentChange}/>
 									<Button mode='secondary' className='commentButton' onClick={() => {
 										setModal(null);
 										addNewMarkerComment();
@@ -791,8 +934,8 @@ const App = () => {
 								</Button>
 								{clickedMarker.userId !== fetchedUser.id 
 								?
-									includesId()
-									|| <Button className='primaryButton' mode='primary' size='xl' onClick={() => {	
+									includesId() ||
+									<Button className='primaryButton' mode='primary' size='xl' onClick={() => {	
 											setModal(null);				
 											confirmMarker();
 										}}>
@@ -816,7 +959,7 @@ const App = () => {
 				onClose={() => {
 					setModal(null);
 					}}
-				header={'Нужна помощь'}>
+					header={'Нужна помощь'}>
 					{!clickedMarker ||
 						<Div className='card'>
 							<Div className='cardInfo'>
@@ -855,7 +998,7 @@ const App = () => {
 								</Gallery>
 								}	
 								<Div className='commentInputDiv'>
-									<Input className='commentInput' type="text" placeholder='Введите комментарий' maxLength="64" onChange={commentChange}/>
+									<Input className='commentInput' type="text" placeholder='Введите комментарий' maxLength="50" onChange={commentChange}/>
 									<Button mode='secondary' className='commentButton' onClick={() => {
 										addNewMarkerComment();
 										setModal(null);
@@ -888,6 +1031,23 @@ const App = () => {
 	return (
 		<Epic activeStory={activeStory} tabbar={
 			<Tabbar>
+				{activeStory === 'chatPanel'
+				?
+					isCityDivClosed 
+					?
+						<MessageSend 
+							fetchedUser={fetchedUser} 
+							cityId={city.id} 
+							setNewSnackbar={setNewSnackbar}
+							sendsMessagesCount={sendsMessagesCount}
+							setSendsMessagesCount={setSendsMessagesCount}
+							sendsMessagesLimitTimer={sendsMessagesLimitTimer}
+							setSendsMessagesLimitTimer={setSendsMessagesLimitTimer}
+							setNewSnackbar={setNewSnackbar}
+						/>
+					: null
+				: null
+				}
 				{snackbar}
 			<TabbarItem
 				onClick={onStoryChange}
@@ -910,36 +1070,36 @@ const App = () => {
 			</Tabbar>
 		}>
 			<View id="chatPanel" activePanel="chatPanel" popout={popout}>
-				<Chat id="chatPanel" fetchedUser={fetchedUser} changePopoutState={changePopoutState} setNewSnackbar={setNewSnackbar}/>
+				<Chat 
+					id="chatPanel" 
+					fetchedUser={fetchedUser} 
+					city={city} 
+					setCity={setCity} 
+					isCityDivClosed={isCityDivClosed}
+					setCityDivClosed={setCityDivClosed} 
+					changePopoutState={changePopoutState} 
+					setNewSnackbar={setNewSnackbar}
+				/>
 			</View>
 			<View id="mapPanel" activePanel="mapPanel" popout={popout} modal={modalRoot}>
-				<Map id="mapPanel" onSetMarker={onSetMarker} updateMarkersOnMap={updateMarkers} onClickMarker={onClickMarker}/>
+				<Map 
+					id="mapPanel" 
+					onSetMarker={onSetMarker} 
+					updateMarkersOnMap={updateMarkers} 
+					onClickMarker={onClickMarker}
+				/>
+			</View>
+			<View id="firstTimePanel" activePanel="firstTimePanel">
+				<FirstTimePanel 
+					id="firstTimePanel" 
+					setFirstTime={setFirstTime}
+				/>
 			</View>
 			{/* {<View id="configPanel" activePanel="configPanel">
 				<Config id="configPanel"/>
 			</View>} */}
 		</Epic>
 	);
-}
-
-function Comment(props) {
-	let comment = props.comment;
-	return (
-	<Div size="m" className='commentCell'>
-		<Group className='commentInfo'
-		separator='hide'
-		description={comment.comment}>
-			<Cell className='commentOwnerCell' asideContent={<Text>{getDiffTime(comment.datetime)}</Text>}>
-				<Link href={`https://vk.com/id${comment.userId}`} target='_blank'>
-					<Div className='commentOwner'>
-						<Div className='commentUserName'>
-							<Title level='3' weight="medium" style={{margin: 0, padding: 0 }}>{comment.firstName}</Title>
-						</Div>
-					</Div>
-				</Link>
-			</Cell>
-		</Group>
-	</Div>);
 }
 
 export default App;

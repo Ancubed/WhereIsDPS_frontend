@@ -35,15 +35,6 @@ function getTimeForChat(datetime) {
 	}
 }
 
-function isStringEmpty(string) {
-	string = string.trim();
-	if (string.length > 0) {
-		return false;
-	} else {
-		return true;
-	}
-}
-
 class Chat extends React.Component {
 	constructor (props) {
 	  super(props);
@@ -52,9 +43,7 @@ class Chat extends React.Component {
 	  this.onChangeInputCity = this.onChangeInputCity.bind(this);
       this.getCities = this.getCities.bind(this);
 	  this.state = {
-			search: '',
-			city: {id: localStorage.cityId || '605', name: localStorage.cityName ||'Москва, Московская область'},
-			isCityDivOpen: true
+			search: '',			
 	  }
 	  this.cities = [];
     }
@@ -74,31 +63,26 @@ class Chat extends React.Component {
     }
 
 	cityChange(id, name) {
-		this.setState({
-			city: { id: id, name: name }
-		});
-		localStorage.cityId = id;
-		localStorage.cityName = name;
+		this.props.setCity({id: id, name: name});
+		localStorage.setItem('cityId', id);
+		localStorage.setItem('cityName', name);
 	}
 
 	openCloseCityDiv() {
-		let stateNow = this.state.isCityDivOpen;
-		this.setState({
-			isCityDivOpen: !stateNow
-		});
+		let stateNow = this.props.isCityDivClosed;
+		this.props.setCityDivClosed(!stateNow);
 	}
 
 	async getCities () {
 		let cities = [];
 			try {
-				let response = await fetch("https://51.178.18.239:3010/getcities", {
+				let response = await fetch(`https://brainrtp.me:8443/getcities${window.location.search}`, {
 					method: 'GET',
 					headers: {
 						'Content-Type': 'application/json'
 					}
 				});
 				cities = await response.json();
-				localStorage.cities = cities;
 			} catch(e) {
 				this.props.setNewSnackbar('Сервер недоступен.', 5000);
 				console.log('cities loading error');
@@ -120,13 +104,13 @@ class Chat extends React.Component {
 	  return (
 		<Panel className="panel" id={this.props.id}>
 			<PanelHeader id='panelHeader'>
-				{this.state.city.name.split(',')[0]}
+				{this.props.city.name.split(',')[0]}
 				<PanelHeaderButton id='openClosePanelHeaderButton' onClick={() => {
 					this.props.changePopoutState(true);
 					this.openCloseCityDiv();
 					this.props.changePopoutState(false);
 					}}>
-				{this.state.isCityDivOpen
+				{this.props.isCityDivClosed
 				?
 					<Icon24Dropdown />
 				: 
@@ -135,31 +119,35 @@ class Chat extends React.Component {
 				</PanelHeaderButton>
 			</PanelHeader>
 			<Div id='chat'>
-			{this.state.isCityDivOpen ||
+			{this.props.isCityDivClosed ||
 				<Div id='chatCityDiv'>
-					
-						<Group header={<Header mode="secondary">Город</Header>}
-						separator='show'>
-							<Cell id='cellCity'>
-								<Search id='citySearch' value={this.state.search} onChange={this.onChangeInputCity} after={null}/>
-									{this.citiesInList.length > 0 && this.citiesInList.length < 100 &&
-										<List id='cityList'>
-										{this.citiesInList.map(city => <CellButton className={'cityCellButton'} onClick={() => {
-											this.cityChange(city.id, city.name);
-											this.openCloseCityDiv();
-											}} 
-											key={city.id}>{city.name}</CellButton>)}
-										</List>
-									}
-							</Cell>
-						</Group>
-					
+					<Group header={<Header mode="secondary">Город</Header>}
+					separator='hide'>
+						<Cell id='cellCity'>
+							<Search id='citySearch' value={this.state.search} onChange={this.onChangeInputCity} maxLength='100' after={null}/>
+								{this.citiesInList.length > 0 && this.citiesInList.length < 100 
+								?
+									<List id='cityList'>
+									{this.citiesInList.map(city => <CellButton className={'cityCellButton'} onClick={() => {
+										this.cityChange(city.id, city.name);
+										this.openCloseCityDiv();
+										}} 
+										key={city.id}>{city.name}</CellButton>)}
+									</List>
+								:
+									<List id='cityList'>
+									{this.citiesInList.slice(0, 20).map(city => <CellButton className={'cityCellButton'} onClick={() => {
+										this.cityChange(city.id, city.name);
+										this.openCloseCityDiv();
+										}} 
+										key={city.id}>{city.name}</CellButton>)}
+									</List>
+								}
+						</Cell>
+					</Group>
 				</Div>
-			}	{!this.state.isCityDivOpen ||
-					<Messages fetchedUser={this.props.fetchedUser} cityId={this.state.city.id} changePopoutState={this.props.changePopoutState} setNewSnackbar={this.props.setNewSnackbar}/>
-				}
-				{!this.state.isCityDivOpen ||
-					<MessageSend fetchedUser={this.props.fetchedUser} cityId={this.state.city.id} setNewSnackbar={this.props.setNewSnackbar}/>
+			}	{!this.props.isCityDivClosed ||
+					<Messages fetchedUser={this.props.fetchedUser} cityId={this.props.city.id} changePopoutState={this.props.changePopoutState} setNewSnackbar={this.props.setNewSnackbar}/>
 				}
 				</Div>
 	  	</Panel>
@@ -224,12 +212,12 @@ class Chat extends React.Component {
 			const windowHeight = window.innerHeight;
 			if ((clientHeight - windowHeight) < 300) this.buttonScrollDownRender(false);
 			else this.buttonScrollDownRender(true);
-			if (scrollTop+1 >= clientHeight - windowHeight) {
+			if (scrollTop+200 >= clientHeight - windowHeight) {
 				this.timeoutToMessagesWasntScroll = setTimeout(() => {
 					this.intervalToScrollLastMessageIfUserNotScroll = setInterval(() => {
-						this.scrollToBottom();
+						this.scrollToBottom('smooth');
 					}, 100);
-				}, 1000);
+				}, 400);
 			}
 			if (scrollTop+1 >= clientHeight - windowHeight - 500){
 				this.buttonScrollDownRender(false);
@@ -258,10 +246,11 @@ class Chat extends React.Component {
 			let messages = [];
 			let filter = {
 				cityId: this.props.cityId,
-				datetime: this.datetime
+				datetime: this.datetime,
+				sign: window.location.search.slice(1, window.location.search.length)
 			}
 			try {
-				let response = await fetch("https://51.178.18.239:3010/getmessages", {
+				let response = await fetch("https://brainrtp.me:8443/getmessages", {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
@@ -326,24 +315,18 @@ class Chat extends React.Component {
 								<Icon28ArrowDownOutline />
 							</Button>
 							{this.state.messages.map((message, index) => 
-								index === this.state.messages.length - 1 
-								?
-									message.userId === this.props.fetchedUser.id
-									? <Message key={index} message={message} ref={this.myRef} class={'myMessage'}/>
-									: <Message key={index} message={message} ref={this.myRef} class={'message'}/>
-								:
-									message.userId === this.props.fetchedUser.id
-									? <Message key={index} message={message} class={'myMessage'}/>
-									: <Message key={index} message={message} class={'message'}/>
+								message.userId === this.props.fetchedUser.id
+								? <Message key={index} message={message} class={'myMessage'}/>
+								: <Message key={index} message={message} class={'message'}/>
 							)
 							}
 						</Div>
 					: this.state.isMessagesLoad &&
 						<Div id='chatMessagesEmpty'>
-							<Text className='messageTextText'>Канал пока пуст.</Text>
+							<Text id='emptyCityList' className='messageTextText'>Канал пока пуст.</Text>
 						</Div>
 					}
-					<div ref={this.messagesEndRef} />
+					<div ref={this.messagesEndRef} id='ref'/>
 				</Div>
 		)};
 	}
@@ -372,85 +355,6 @@ class Chat extends React.Component {
 				</Div>
 			</Div>
 		)}
-	}
-
-	class MessageSend extends React.Component {
-		constructor (props) {
-		  	super(props);
-			this.sendMessage = this.sendMessage.bind(this);
-			this.messageChange = this.messageChange.bind(this);
-			this.buttonSendMessageRender = this.buttonSendMessageRender.bind(this);
-			this.state = {
-				message: ''
-			}
-			this.messageNotState='';
-		}
-
-		messageChange(e) {
-			this.setState({
-				message:  e.target.value
-			});
-			this.messageNotState = e.target.value;
-			this.buttonSendMessageRender();
-		}
-
-		buttonSendMessageRender() {
-			let isNeedRender = !isStringEmpty(this.messageNotState);
-			let buttonSendMessage = document.getElementById('messageSendButton')
-			try {
-				isNeedRender ? buttonSendMessage.style.display = 'block' : buttonSendMessage.style.display = 'none';
-			} catch (e) {
-				console.log(e)
-			}
-		}
-
-		async sendMessage() {
-			let trimmedMessage = this.state.message.replace(/\s+/g, ' ').trim();
-			if (this.state.message.length > 0) {
-				let messageInfo = {
-					userId: this.props.fetchedUser.id,
-					cityId: this.props.cityId,
-					firstName: this.props.fetchedUser.first_name,
-					lastName: this.props.fetchedUser.last_name,
-					photo: this.props.fetchedUser.photo_100,
-					message: trimmedMessage
-				}
-				let response = false;
-				try {
-					response = await fetch("https://51.178.18.239:3010/addmessage", {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify(messageInfo)
-					});
-					this.setState({
-						message:  ''
-					});
-				} catch(e) {
-					this.props.setNewSnackbar('Сервер недоступен.', 5000);
-					console.log('err in send messages');
-				}
-				if (!response) {
-					this.props.setNewSnackbar('Сервер недоступен.', 5000);
-					console.log('res return false');
-				}
-			}
-		}
-
-		render () {
-			return (
-				<Div id='chatMessageSendDiv'>
-					<Input id='chatMessageInput' autoComplete='off' type="text" value={this.state.message} placeholder='Введите сообщение' maxLength="256" onChange={this.messageChange}/>
-					<Button mode='secondary' id='messageSendButton' onClick={() => {
-							this.messageNotState = '';
-							this.buttonSendMessageRender();	
-							this.sendMessage();
-						}}>
-						<Icon24Send/>
-					</Button>
-				</Div>
-			)}
 	}
 
 export default Chat;

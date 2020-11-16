@@ -92,20 +92,6 @@ class Map extends React.Component {
 		let lat = localStorage.lat || 55.74489304677828;
 		let lng = localStorage.lng || 37.61306762695313;
 		let zoom = localStorage.zoom || 10;
-		try {
-			await bridge.send("VKWebAppGetGeodata").then((e) => {
-				if (e.available && e.lat && e.long) {
-					lat = e.lat;
-					lng = e.long;
-					this.myPosition.setLatLng([lat, lng]);
-					this.positionAccess = true;
-				}
-			}, reason => {
-				console.log('Cant get a geolocation');
-			});
-		} catch(e) {
-			console.log('cant load a position');
-		}
 		this.map = DG.map('map', {
 			center: [lat, lng],
 			zoom: zoom,
@@ -114,6 +100,26 @@ class Map extends React.Component {
 			minZoom: 4,
 			touchZoom: true
 		});
+		try {
+			await bridge.send("VKWebAppGetGeodata").then((e) => {
+				if (e.available && e.lat && e.long) {
+					lat = e.lat;
+					lng = e.long;
+					this.myPosition.setLatLng([lat, lng]);
+					this.positionAccess = true;
+					this.updatePosition();
+					this.myPosition.addTo(this.map);
+					this.map.flyTo(this.myPosition.getLatLng(), localStorage.zoom || 10, {animate: true, duration: 1});
+					this.timerForPosition = setInterval(() => {
+						if (this.positionAccess) this.updatePosition();
+					}, 800);
+				}
+			}, reason => {
+				console.log('Cant get a geolocation');
+			});
+		} catch(e) {
+			console.log('cant load a position');
+		}
 		this.map.on('projectchange', (e) => {
 			console.log(e.getProject());
 		});
@@ -136,12 +142,6 @@ class Map extends React.Component {
 		this.timerForMarkers = setInterval(() => {
 			this.updateMarkers();
 		}, 3000);
-		if (this.positionAccess) {
-			this.myPosition.addTo(this.map);
-			this.timerForPosition = setInterval(() => {
-				this.updatePosition();
-			}, 800);
-		}
 	}
 
 	componentWillUnmount() {
